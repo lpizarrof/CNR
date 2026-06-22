@@ -1,1 +1,274 @@
+Aquí tienes el código actualizado. He modificado únicamente la sección del **Catálogo Nacional de Organizaciones de Usuarios de Aguas (OUA)** para incluir los dos botones ("Versión A" y "Versión B") con sus respectivos enlaces, tal como solicitaste, sin eliminar el resto del contenido.
 
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboards de Información - CNR</title>
+    <style>
+        /* Estilos generales */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+            background: radial-gradient(circle at center, #354a9b 0%, #202d68 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Estilos de la Cabecera (Header) */
+        .header-container {
+            text-align: center;
+            margin-top: 0;
+            padding-top: 0;
+        }
+        
+        .chile-flag-top {
+            display: flex;
+            width: 140px;
+            height: 24px;
+            margin: 0 auto;
+        }
+        
+        .flag-blue {
+            background-color: #0033a0;
+            width: 35%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 16px;
+        }
+        
+        .flag-red {
+            background-color: #da291c;
+            width: 65%;
+        }
+        
+        .header-text {
+            font-weight: 800;
+            font-size: 14px;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Estilos del Contenido Central */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .cnr-branding {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: #e0e4f5;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* Contenedor de Módulos/Programas */
+        .dashboard-sections-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .dashboard-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .dashboard-card h3 {
+            font-size: 1.3rem;
+            margin: 0;
+            color: #ffffff;
+            text-align: left;
+            flex-grow: 1;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+            gap: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #202d68;
+            background-color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background-color: #e0e4f5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Estilos del Pie de Página (Footer) */
+        .footer-container {
+            display: flex;
+            align-items: center;
+            width: 90%;
+            margin: 0 auto 30px auto;
+        }
+
+        .footer-line {
+            height: 2px;
+            flex-grow: 1;
+        }
+
+        .footer-line.left {
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3) 20%, rgba(255, 255, 255, 0.8) 80%, #0033a0, #da291c);
+        }
+
+        .footer-line.right {
+            background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.3) 20%, rgba(255, 255, 255, 0.8) 80%, #0033a0, #da291c);
+        }
+
+        .footer-text {
+            margin: 0 15px;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        
+        .footer-text span {
+            font-weight: 400;
+        }
+
+        /* Responsividad básica para pantallas pequeñas */
+        @media (max-width: 600px) {
+            .dashboard-card {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+            .dashboard-card h3 {
+                text-align: center;
+                margin-bottom: 15px;
+            }
+            .buttons-container {
+                width: 100%;
+                justify-content: center;
+                flex-direction: column; /* Cambiado para que los botones se apilen en móviles si hay más de uno */
+            }
+            .btn {
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cabecera Institucional -->
+    <div class="header-container">
+        <div class="chile-flag-top">
+            <div class="flag-blue">&#9733;</div>
+            <div class="flag-red"></div>
+        </div>
+        <div class="header-text">TRABAJANDO PARA USTED</div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="main-content">
+        
+        <!-- Identificación Institucional -->
+        <div class="cnr-branding">
+            <h1 class="main-title">Comisión Nacional de Riego (CNR)</h1>
+            <p class="subtitle">División de Estudios, Desarrollo y Políticas</p>
+        </div>
+
+        <!-- Listado de Dashboards por Programa -->
+        <div class="dashboard-sections-container">
+            
+            <!-- Programa 1: Fortalecimiento OUA, Illapel -->
+            <div class="dashboard-card">
+                <h3>Programa de Fortalecimiento OUA, Illapel</h3>
+                <div class="buttons-container">
+                    <a href="db-illapel-cld.html" class="btn">Ver Dashboard</a>
+                </div>
+            </div>
+
+            <!-- Programa 2: Catálogo OUA -->
+            <div class="dashboard-card">
+                <h3>Catálogo Nacional de Organizaciones de Usuarios de Aguas (OUA)</h3>
+                <div class="buttons-container">
+                    <a href="db-BDD-Contactos-OUAs-MTA-cld.html" class="btn">Versión A</a>
+                    <a href="db-BDD-Contactos-OUAs-MTA-gmn.html" class="btn">Versión B</a>
+                </div>
+            </div>
+
+            <!-- Programa 3: Glosa de la Ley de Fomento (COMENTADO HASTA SU PUBLICACIÓN) -->
+            <!-- 
+            <div class="dashboard-card">
+                <h3>Glosa de la Ley de Fomento</h3>
+                <div class="buttons-container">
+                    <a href="db-glosa-fomento.html" class="btn">Ver Dashboard</a>
+                </div>
+            </div>
+            -->
+
+        </div>
+    </div>
+
+    <!-- Pie de Página Institucional -->
+    <div class="footer-container">
+        <div class="footer-line left"></div>
+        <div class="footer-text">GOBIERNO <span>DE</span> CHILE</div>
+        <div class="footer-line right"></div>
+    </div>
+
+</body>
+</html>
+
+```
