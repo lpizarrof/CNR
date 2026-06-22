@@ -39,8 +39,16 @@
   table.detail th { background:#0B5394; color:white; padding:7px 8px; text-align:left; position:sticky; top:0; }
   table.detail td { padding:6px 8px; border-bottom:1px solid #eee; }
   table.detail tr:nth-child(even) { background:#FAFBFC; }
+  table.detail tr.row-selected { background:#FFF3E0 !important; }
+  table.detail tr.row-clickable { cursor:pointer; }
+  table.detail tr.row-clickable:hover { background:#EAF1F8; }
+  table.detail th.col-check, table.detail td.col-check { width:32px; text-align:center; padding:6px 4px; }
   .table-scroll { max-height: 360px; overflow-y:auto; border:1px solid #eee; border-radius:6px; }
   .empty-state { text-align:center; color:#999; padding:40px; font-size:13px; }
+  .table-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .table-toolbar .mini-btn { background:#EAF1F8; color:#0B5394; border:1px solid #0B5394; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; }
+  .table-toolbar .mini-btn:hover { background:#0B5394; color:white; }
+  .chip.chip-persons { background:#674EA7; }
 
   @media (max-width: 1100px) {
     .kpi-grid { grid-template-columns: repeat(3, 1fr); }
@@ -107,10 +115,15 @@
 
   <div class="section-title">Detalle de personas (según filtros activos)</div>
   <div class="panel">
-    <div class="panel-sub" id="detailCount" style="margin-bottom:8px;"></div>
+    <div class="table-toolbar">
+      <span class="panel-sub" id="detailCount" style="margin:0;"></span>
+      <button class="mini-btn" onclick="selectAllVisible()">Seleccionar todos los visibles</button>
+      <button class="mini-btn" onclick="clearPersonSelection()">Limpiar selección de personas</button>
+      <span class="hint">Clic en una fila o su casillero para incluirla/excluirla de los gráficos</span>
+    </div>
     <div class="table-scroll">
       <table class="detail" id="detailTable">
-        <thead><tr><th>Persona</th><th>RUT</th><th>Sexo</th><th>Tipo OUA</th><th>Organización</th><th>Contacto</th><th>N° Actividades</th></tr></thead>
+        <thead><tr><th class="col-check"></th><th>Persona</th><th>RUT</th><th>Sexo</th><th>Tipo OUA</th><th>Organización</th><th>Contacto</th><th>N° Actividades</th></tr></thead>
         <tbody id="detailBody"></tbody>
       </table>
     </div>
@@ -137,6 +150,26 @@ let filters = { sexo:new Set(), tipo_oua:new Set(), organizacion:new Set(), acti
 
 const FILTER_LABELS = { sexo:"Sexo", tipo_oua:"Tipo OUA", organizacion:"Organización", actividad:"Actividad", categoria:"Etapa", n_actividades:"N° Actividades" };
 
+// Selección directa de personas en la tabla de detalle (independiente de los filtros por categoría:
+// es una lista explícita de persona_id elegidos a mano, que se combina en AND con el resto de filtros)
+let selectedPersons = new Set();
+
+function togglePersonSelection(personaId){
+  if (selectedPersons.has(personaId)) selectedPersons.delete(personaId);
+  else selectedPersons.add(personaId);
+  renderAll();
+}
+function clearPersonSelection(){
+  selectedPersons.clear();
+  renderAll();
+}
+function selectAllVisible(){
+  const rows = applyAllFilters("selectedPersons");
+  const ids = new Set(rows.map(r=>r.persona_id));
+  ids.forEach(id => selectedPersons.add(id));
+  renderAll();
+}
+
 function toggleFilter(dim, value){
   if (filters[dim].has(value)) filters[dim].delete(value);
   else filters[dim].add(value);
@@ -144,6 +177,7 @@ function toggleFilter(dim, value){
 }
 function clearAllFilters(){
   Object.keys(filters).forEach(k => filters[k].clear());
+  selectedPersons.clear();
   renderAll();
 }
 function removeChip(dim, value){
@@ -159,10 +193,6 @@ function filterRows(excludeDim){
     for (const dim of ["sexo","tipo_oua","organizacion","actividad","categoria"]){
       if (dim === excludeDim) continue;
       if (filters[dim].size > 0 && !filters[dim].has(r[dim])) return false;
-    }
-    if (excludeDim !== "n_actividades" && filters.n_actividades.size > 0){
-      // necesita el conteo de actividades por persona ya filtrado por el resto de dimensiones
-      // se resuelve después con personIdsMatchingNActividades
     }
     return true;
   });
@@ -186,6 +216,9 @@ function applyAllFilters(excludeDim){
   if (excludeDim !== "n_actividades"){
     const allowedPersons = personasConNActividades();
     if (allowedPersons) rows = rows.filter(r => allowedPersons.has(r.persona_id));
+  }
+  if (excludeDim !== "selectedPersons" && selectedPersons.size > 0){
+    rows = rows.filter(r => selectedPersons.has(r.persona_id));
   }
   return rows;
 }
@@ -242,6 +275,10 @@ function renderFilterBar(){
       chips.push(`<span class="chip">${FILTER_LABELS[dim]}: ${v} <button onclick="removeChip('${dim}','${String(v).replace(/'/g,"\\'")}')">&times;</button></span>`);
     });
   });
+  if (selectedPersons.size > 0){
+    const label = selectedPersons.size === 1 ? "1 persona seleccionada" : `${selectedPersons.size} personas seleccionadas`;
+    chips.push(`<span class="chip chip-persons">${label} <button onclick="clearPersonSelection()">&times;</button></span>`);
+  }
   const any = chips.length>0;
   document.getElementById("noFiltersHint").style.display = any ? "none" : "inline";
   document.getElementById("clearAllBtn").disabled = !any;
@@ -371,25 +408,35 @@ function renderEmbudo(){
 }
 
 function renderDetailTable(){
-  const rows = applyAllFilters(null);
+  // La tabla muestra el universo definido por los filtros de categoría (sexo, tipo OUA, organización,
+  // actividad, etapa, n° actividades), SIN aplicar aún la selección manual de personas — así se puede
+  // seguir viendo y modificando esa selección sin que la lista se reduzca a lo ya elegido.
+  const rows = applyAllFilters("selectedPersons");
   const byPerson = {};
   rows.forEach(r => {
     if (!byPerson[r.persona_id]) byPerson[r.persona_id] = {
-      nombre: r.nombre_completo, rut: r.rut || "—", sexo:r.sexo, tipo_oua:r.tipo_oua,
+      id: r.persona_id, nombre: r.nombre_completo, rut: r.rut || "—", sexo:r.sexo, tipo_oua:r.tipo_oua,
       organizacion:r.organizacion, contacto: r.contacto || "—", n:0
     };
     byPerson[r.persona_id].n++;
   });
   const list = Object.values(byPerson).sort((a,b)=>b.n-a.n);
-  document.getElementById("detailCount").textContent = `${list.length} persona(s) coinciden con los filtros activos`;
+  const nSelectedVisible = list.filter(p => selectedPersons.has(p.id)).length;
+  const selSuffix = selectedPersons.size>0 ? ` · ${nSelectedVisible} seleccionada(s) de esta lista (${selectedPersons.size} en total)` : "";
+  document.getElementById("detailCount").textContent = `${list.length} persona(s) coinciden con los filtros activos${selSuffix}`;
   const tbody = document.getElementById("detailBody");
   if (list.length === 0){
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Sin resultados para esta combinación de filtros</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Sin resultados para esta combinación de filtros</td></tr>`;
     return;
   }
-  tbody.innerHTML = list.slice(0,200).map(p =>
-    `<tr><td>${p.nombre}</td><td>${p.rut}</td><td>${p.sexo}</td><td>${p.tipo_oua}</td><td>${p.organizacion}</td><td>${p.contacto}</td><td>${p.n}</td></tr>`
-  ).join("");
+  tbody.innerHTML = list.slice(0,200).map(p => {
+    const checked = selectedPersons.has(p.id) ? "checked" : "";
+    const selClass = selectedPersons.has(p.id) ? "row-selected" : "";
+    return `<tr class="row-clickable ${selClass}" onclick="togglePersonSelection('${p.id}')">
+      <td class="col-check" onclick="event.stopPropagation(); togglePersonSelection('${p.id}')"><input type="checkbox" ${checked} onclick="event.stopPropagation(); togglePersonSelection('${p.id}')"></td>
+      <td>${p.nombre}</td><td>${p.rut}</td><td>${p.sexo}</td><td>${p.tipo_oua}</td><td>${p.organizacion}</td><td>${p.contacto}</td><td>${p.n}</td>
+    </tr>`;
+  }).join("");
 }
 
 // Orden fijo de actividades para que las barras no salten de posición al filtrar
