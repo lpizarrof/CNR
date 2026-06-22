@@ -1,9 +1,14 @@
+Aquí tienes el código modificado para `index.html`. He adaptado la estructura para convertirla en un portal o suite de soluciones que agrupa los distintos dashboards de la **Comisión Nacional de Riego (CNR)**, específicamente bajo la **División de Estudios, Desarrollo y Políticas**.
+
+El diseño mantiene la estética institucional y organiza el contenido en secciones claras. El nuevo módulo para la **Glosa de la ley de fomento** ha quedado completamente estructurado pero **comentado en el código HTML** para que no sea visible hasta que decidas publicarlo (bastará con quitar las etiquetas de comentario ``).
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Programa Illapel</title>
+    <title>Dashboards de Información - CNR</title>
     <style>
         /* Estilos generales */
         body, html {
@@ -62,33 +67,77 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .cnr-branding {
+            margin-bottom: 40px;
         }
 
         .main-title {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 700;
-            margin-bottom: 50px;
+            margin: 0 0 10px 0;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: #e0e4f5;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* Contenedor de Módulos/Programas */
+        .dashboard-sections-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .dashboard-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .dashboard-card h3 {
+            font-size: 1.4rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #ffffff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+            text-align: left;
         }
 
         .buttons-container {
             display: flex;
-            gap: 30px;
+            gap: 20px;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-start;
         }
 
         .btn {
             display: inline-block;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 12px 30px;
+            font-size: 1rem;
             font-weight: 600;
             color: #202d68;
             background-color: #ffffff;
             text-decoration: none;
             border-radius: 4px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -96,8 +145,8 @@
 
         .btn:hover {
             background-color: #e0e4f5;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
         }
 
         /* Estilos del Pie de Página (Footer) */
@@ -144,11 +193,23 @@
     </div>
 
     <div class="main-content">
-        <h1 class="main-title">Dashboard de Programa Illapel</h1>
-        <div class="buttons-container">
-            <a href="db-illapel-cld.html" class="btn">Versión 1</a>
-            <a href="db-illapel-gmn.html" class="btn">Versión 2</a>
+        
+        <div class="cnr-branding">
+            <h1 class="main-title">Comisión Nacional de Riego (CNR)</h1>
+            <p class="subtitle">División de Estudios, Desarrollo y Políticas</p>
         </div>
+
+        <div class="dashboard-sections-container">
+            
+            <div class="dashboard-card">
+                <h3>Programa de Fortalecimiento OUA, Illapel</h3>
+                <div class="buttons-container">
+                    <a href="db-illapel-cld.html" class="btn">Versión 1</a>
+                    <a href="db-illapel-gmn.html" class="btn">Versión 2</a>
+                </div>
+            </div>
+
+            </div>
     </div>
 
     <div class="footer-container">
@@ -159,3 +220,5 @@
 
 </body>
 </html>
+
+```
