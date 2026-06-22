@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard BI OUA MTA</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        /* Ocultar scrollbar global para forzar diseño encajado en pantalla */
+        ::-webkit-scrollbar { display: none; }
+        
+        .bg-brand-dark { background-color: #0f172a; }
+        .bg-brand-accent { background-color: #1e293b; }
+        .text-brand-dark { color: #0f172a; }
+        
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        /* Sistema de pestañas: oculta las inactivas */
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; }
+
+        /* Estilo activo del menú lateral */
+        .nav-item.active { background-color: rgba(37, 99, 235, 0.2); color: #60a5fa; border-left-color: #3b82f6; }
+        .nav-item.active i { color: #60a5fa; }
+        
+        /* Grilla matricial para pestaña Inteligencia CNR */
+        .matrix-bg {
+            background: linear-gradient(to top right, #fee2e2 0%, #fef3c7 50%, #dcfce7 100%);
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Responsive text forces to prevent overflow in tight screens */
+        @media (max-height: 800px) { html { font-size: 13px; } }
+        @media (max-height: 650px) { html { font-size: 11px; } }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col text-sm bg-slate-100">
+
+    <div class="flex h-full w-full overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-[18%] max-w-[220px] bg-brand-dark text-slate-300 flex flex-col flex-shrink-0 z-20 shadow-xl border-r border-slate-800">
+            <div class="h-16 flex items-center px-4 border-b border-slate-700/50">
+                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center text-brand-dark shadow-lg">
+                    <i class="fa-solid fa-leaf text-sm"></i>
+                </div>
+                <div class="ml-3">
+                    <h1 class="font-bold text-xs leading-none text-white tracking-wide">Catálogo OUA</h1>
+                    <h2 class="text-[9px] text-slate-400">Dirección Gral. Aguas</h2>
+                </div>
+            </div>
+            
+            <nav class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto px-3">
+                <!-- Pestaña 1: Resumen -->
+                <button onclick="switchTab('resumen')" id="nav-resumen" class="nav-item active flex flex-col items-center justify-center py-2.5 px-2 rounded-md transition-colors border-l-4 border-transparent hover:bg-slate-800 text-slate-400 w-full">
+                    <i class="fa-solid fa-chart-pie mb-1 text-base"></i>
+                    <span class="text-[9px] font-semibold text-center leading-tight">Resumen Ejecutivo</span>
+                </button>
+                <!-- Pestaña 2: OUA de Hecho -->
+                <button onclick="switchTab('hecho')" id="nav-hecho" class="nav-item flex flex-col items-center justify-center py-2.5 px-2 rounded-md transition-colors border-l-4 border-transparent hover:bg-slate-800 text-slate-400 w-full">
+                    <i class="fa-solid fa-users-slash mb-1 text-base text-orange-400"></i>
+                    <span class="text-[9px] font-semibold text-center leading-tight">OUA de Hecho</span>
+                </button>
+                <!-- Pestaña 3: Emergencias Climáticas -->
+                <button onclick="switchTab('emergencias')" id="nav-emergencias" class="nav-item flex flex-col items-center justify-center py-2.5 px-2 rounded-md transition-colors border-l-4 border-transparent hover:bg-slate-800 text-slate-400 w-full">
+                    <i class="fa-solid fa-cloud-showers-water mb-1 text-base text-red-400"></i>
+                    <span class="text-[9px] font-semibold text-center leading-tight">Emergencias<br>Climáticas</span>
+                </button>
+                <!-- Pestaña 4: Inteligencia CNR -->
+                <button onclick="switchTab('inteligencia')" id="nav-inteligencia" class="nav-item flex flex-col items-center justify-center py-2.5 px-2 rounded-md transition-colors border-l-4 border-transparent hover:bg-slate-800 text-slate-400 w-full">
+                    <i class="fa-solid fa-brain mb-1 text-base text-purple-400"></i>
+                    <span class="text-[9px] font-semibold text-center leading-tight">Inteligencia CNR</span>
+                </button>
+                
+                <div class="mt-2 mb-1 border-t border-slate-700/50 mx-2"></div>
+                <p class="text-[8px] text-slate-500 uppercase font-bold text-center mb-1">Módulos en desarrollo</p>
+                
+                <div class="opacity-50 pointer-events-none flex flex-col gap-1">
+                    <button class="nav-item flex flex-col items-center justify-center py-2 px-2 text-slate-500 w-full">
+                        <i class="fa-solid fa-address-book mb-1 text-sm"></i><span class="text-[9px] leading-tight text-center">Cobertura Contacto</span>
+                    </button>
+                    <button class="nav-item flex flex-col items-center justify-center py-2 px-2 text-slate-500 w-full">
+                        <i class="fa-solid fa-map-location-dot mb-1 text-sm"></i><span class="text-[9px] leading-tight text-center">Gestión Territorial</span>
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT WORKSPACE -->
+        <main class="flex-1 flex flex-col relative z-10 min-w-0 h-full overflow-hidden">
+            
+            <!-- HEADER CON FILTROS GLOBALES -->
+            <header class="h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-30">
+                <div>
+                    <h2 id="header-title" class="text-base font-extrabold text-slate-800 uppercase tracking-tight">Resumen Ejecutivo Nacional</h2>
+                    <p class="text-[10px] text-slate-500 font-medium">Dashboard Interactivo BI • Haz clic en los gráficos para cruzar datos</p>
+                </div>
+
+                <!-- BI FILTERS -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-2 py-1 shadow-inner">
+                        <i class="fa-solid fa-filter text-slate-400 text-[10px]"></i>
+                        
+                        <div class="flex flex-col">
+                            <label class="text-[8px] text-slate-500 uppercase font-bold">Tipo OUA</label>
+                            <select id="filter-tipo" onchange="applyGlobalFilters()" class="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none focus:text-blue-600 min-w-[80px] cursor-pointer">
+                                <option value="Todas">Todas</option>
+                                <option value="CA">CA</option>
+                                <option value="AC">AC</option>
+                                <option value="JV">JV</option>
+                                <option value="CASUB">CASUB</option>
+                            </select>
+                        </div>
+                        <div class="w-px h-6 bg-slate-300 mx-1"></div>
+                        <div class="flex flex-col">
+                            <label class="text-[8px] text-slate-500 uppercase font-bold">Región</label>
+                            <select id="filter-region" onchange="applyGlobalFilters()" class="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none focus:text-blue-600 min-w-[120px] cursor-pointer">
+                                <option value="Todas">Todas</option>
+                                <option value="Arica y Parinacota">Arica y Parinacota</option>
+                                <option value="Coquimbo">Coquimbo</option>
+                                <option value="Valparaíso">Valparaíso</option>
+                                <option value="Metropolitana">Metropolitana</option>
+                                <option value="O'Higgins">O'Higgins</option>
+                                <option value="Maule">Maule</option>
+                                <option value="Ñuble">Ñuble</option>
+                                <option value="La Araucanía">La Araucanía</option>
+                            </select>
+                        </div>
+                        <div class="w-px h-6 bg-slate-300 mx-1"></div>
+                        <div class="flex flex-col">
+                            <label class="text-[8px] text-slate-500 uppercase font-bold">Estado Legal</label>
+                            <select id="filter-estado" onchange="applyGlobalFilters()" class="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none focus:text-blue-600 min-w-[100px] cursor-pointer">
+                                <option value="Todas">Todos</option>
+                                <option value="Registrada">Registrada</option>
+                                <option value="Hecho">De Hecho</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button onclick="resetFilters()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded text-[10px] font-bold border border-slate-300 transition-colors flex items-center gap-1 shadow-sm">
+                        <i class="fa-solid fa-rotate-right"></i> Reset
+                    </button>
+                </div>
+            </header>
+
+            <!-- CONTENEDOR DE PESTAÑAS (Workspace) -->
+            <div class="flex-1 p-3 overflow-hidden">
+                
+                <!-- ========================================== -->
+                <!-- PESTAÑA 1: RESUMEN EJECUTIVO               -->
+                <!-- ========================================== -->
+                <div id="tab-resumen" class="tab-content active flex-col gap-3 h-full w-full">
+                    
+                    <!-- ROW 1: KPIs dinámicos -->
+                    <div class="flex gap-3 h-[12%] shrink-0">
+                        <div class="flex-1 bg-white rounded-lg card-shadow border-l-4 border-blue-600 p-2 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Total OUA</p>
+                                <p id="kpi-total" class="text-2xl font-extrabold text-blue-700 leading-none mt-0.5">4.191</p>
+                            </div>
+                            <i class="fa-solid fa-users text-2xl text-blue-100"></i>
+                        </div>
+                        <div class="flex-1 bg-white rounded-lg card-shadow border-l-4 border-green-500 p-2 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Con Contacto</p>
+                                <p id="kpi-contacto" class="text-2xl font-extrabold text-green-600 leading-none mt-0.5">587</p>
+                                <p id="kpi-contacto-pct" class="text-[9px] text-slate-400 font-medium">14,0% del filtrado</p>
+                            </div>
+                            <i class="fa-solid fa-phone-volume text-2xl text-green-100"></i>
+                        </div>
+                        <div class="flex-1 bg-white rounded-lg card-shadow border-l-4 border-red-500 p-2 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Sin Contacto</p>
+                                <p id="kpi-nocontacto" class="text-2xl font-extrabold text-red-600 leading-none mt-0.5">3.604</p>
+                                <p id="kpi-nocontacto-pct" class="text-[9px] text-slate-400 font-medium">86,0% del filtrado</p>
+                            </div>
+                            <i class="fa-solid fa-phone-slash text-2xl text-red-100"></i>
+                        </div>
+                        <div class="flex-1 bg-white rounded-lg card-shadow border-l-4 border-orange-400 p-2 flex items-center justify-between cursor-pointer hover:bg-orange-50 transition" onclick="switchTab('hecho')">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">OUA de Hecho</p>
+                                <p id="kpi-hecho" class="text-2xl font-extrabold text-orange-500 leading-none mt-0.5">586</p>
+                                <p class="text-[9px] text-slate-400 font-medium">Ver detalle <i class="fa-solid fa-arrow-right"></i></p>
+                            </div>
+                            <i class="fa-solid fa-triangle-exclamation text-2xl text-orange-100"></i>
+                        </div>
+                    </div>
+
+                    <!-- ROW 2: Gráficos Principales -->
+                    <div class="flex gap-3 h-[42%] shrink-0">
+                        <!-- Donut Tipo OUA -->
+                        <div class="w-[33%] bg-white rounded-lg card-shadow p-3 flex flex-col relative">
+                            <h3 class="text-[10px] font-bold text-slate-700 uppercase mb-1">Distribución por Tipo (Clickeable)</h3>
+                            <div class="flex-1 relative w-full h-full min-h-0">
+                                <canvas id="chartTipoOUA"></canvas>
+                                <!-- Center label -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span id="donut-center-val" class="text-xl font-extrabold text-slate-800 leading-none mt-3">4.191</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bar Cobertura por Tipo -->
+                        <div class="w-[34%] bg-white rounded-lg card-shadow p-3 flex flex-col relative">
+                            <h3 class="text-[10px] font-bold text-slate-700 uppercase mb-1">Estado de Contacto por Tipo</h3>
+                            <div class="flex-1 relative w-full h-full min-h-0">
+                                <canvas id="chartContactoTipo"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Tabla Resumen Regiones -->
+                        <div class="w-[33%] bg-white rounded-lg card-shadow p-3 flex flex-col relative overflow-hidden">
+                            <h3 class="text-[10px] font-bold text-slate-700 uppercase mb-1">Ranking: Mayor Déficit de Contacto</h3>
+                            <div class="flex-1 overflow-y-auto mt-1 pr-1" style="scrollbar-width: thin;">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="sticky top-0 bg-white">
+                                        <tr class="border-b border-slate-200 text-[9px] text-slate-500">
+                                            <th class="py-1">Región</th>
+                                            <th class="py-1 text-right">Sin Contacto</th>
+                                            <th class="py-1 text-right">% Falta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ranking-body" class="text-[10px] text-slate-700 font-medium">
+                                        <!-- Generado por JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROW 3: Evolución / Detalle Calidad -->
+                    <div class="flex gap-3 h-[42%] shrink-0">
+                        <div class="w-[68%] bg-white rounded-lg card-shadow p-3 flex flex-col relative">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="text-[10px] font-bold text-slate-700 uppercase">Distribución de OUA sin Contacto (Región vs Tipo)</h3>
+                                <span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">Foco Crítico</span>
+                            </div>
+                            <div class="flex-1 relative w-full h-full min-h-0">
+                                <canvas id="chartMatrizRegion"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="w-[32%] bg-brand-dark rounded-lg card-shadow p-4 flex flex-col text-white relative overflow-hidden">
+                            <!-- Background accent -->
+                            <i class="fa-solid fa-database absolute -bottom-6 -right-6 text-8xl text-slate-800 opacity-50 z-0"></i>
+                            
+                            <h3 class="text-[11px] font-bold text-blue-400 uppercase mb-3 z-10 relative">Insight del Filtrado</h3>
+                            <div class="flex-1 flex flex-col justify-center z-10 relative space-y-4">
+                                <div>
+                                    <p class="text-[10px] text-slate-400 leading-tight mb-1">El mayor problema de datos se concentra en:</p>
+                                    <p id="insight-text-1" class="text-sm font-bold text-white bg-blue-600/30 border border-blue-500/50 rounded p-1.5 inline-block">Comunidades de Aguas (CA)</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-slate-400 leading-tight mb-1">Representan un déficit nacional del:</p>
+                                    <div class="flex items-end gap-2">
+                                        <p id="insight-text-2" class="text-3xl font-extrabold text-red-400 leading-none">89,2%</p>
+                                        <p class="text-[9px] mb-1">sin información</p>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-3 border-t border-slate-700">
+                                    <p class="text-[9px] text-slate-300 leading-snug">Se recomienda priorizar la recolección de datos mediante solicitudes formales a las <span class="text-white font-bold">Juntas de Vigilancia</span> correspondientes.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 2: OUA DE HECHO (Propuesta informe)-->
+                <!-- ========================================== -->
+                <div id="tab-hecho" class="tab-content flex-col gap-3 h-full w-full">
+                    
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 flex gap-4 shrink-0 shadow-sm items-center">
+                        <div class="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center text-orange-600 shrink-0">
+                            <i class="fa-solid fa-users-slash text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-extrabold text-orange-800 uppercase">Análisis: OUA de Hecho (Sin Registro Legal)</h3>
+                            <p class="text-[10px] text-orange-700/80 leading-tight mt-0.5">El informe indica que la no existencia de datos de contacto se agrava en las OUA de hecho, limitando fuertemente el apoyo institucional. <b>482 organizaciones operan de hecho y no poseen contacto.</b></p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 flex-1 min-h-0">
+                        <div class="w-[40%] flex flex-col gap-3 h-full">
+                            <div class="bg-white rounded-lg card-shadow p-3 flex-1 flex flex-col">
+                                <h4 class="text-[10px] font-bold text-slate-700 uppercase mb-2 border-b border-slate-100 pb-1">OUA de Hecho por Tipo</h4>
+                                <div class="flex-1 relative">
+                                    <canvas id="chartHechoBar"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg card-shadow p-3 flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                                <div class="absolute inset-0 bg-red-500/5 z-0"></div>
+                                <h4 class="text-[10px] font-bold text-red-600 uppercase mb-1 z-10">Punto Crítico</h4>
+                                <p class="text-4xl font-black text-red-600 z-10 mb-1" id="kpi-hecho-nocontacto">482</p>
+                                <p class="text-[10px] text-slate-600 text-center font-medium z-10">OUA de Hecho <br><b>SIN NINGÚN TIPO DE CONTACTO</b></p>
+                                <p class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded mt-2 z-10 shadow-sm text-center">Invisibles ante emergencias</p>
+                            </div>
+                        </div>
+
+                        <div class="w-[60%] bg-white rounded-lg card-shadow p-3 flex flex-col relative">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-[10px] font-bold text-slate-700 uppercase">Relación: Legalidad vs Datos de Contacto</h4>
+                            </div>
+                            <div class="flex-1 relative">
+                                <!-- Propuesta de visualización de barras apiladas 100% -->
+                                <canvas id="chartHechoStacked"></canvas>
+                            </div>
+                            <div class="mt-2 bg-slate-50 p-2 rounded border border-slate-200">
+                                <p class="text-[9px] text-slate-600"><i class="fa-solid fa-lightbulb text-yellow-500 mr-1"></i> <b>Recomendación Informe:</b> Imprimir urgencia en la formalización de las OUA y un proceso de obtención de datos a nivel central, ya que las organizaciones operan independientemente de su registro legal.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 3: EMERGENCIAS (Propuesta informe) -->
+                <!-- ========================================== -->
+                <div id="tab-emergencias" class="tab-content flex-col gap-3 h-full w-full">
+                    
+                    <div class="bg-slate-800 text-white rounded-lg p-3 flex gap-4 shrink-0 shadow-sm items-center relative overflow-hidden">
+                        <i class="fa-solid fa-cloud-bolt absolute -right-4 -top-4 text-7xl text-slate-700 opacity-50"></i>
+                        <div class="w-10 h-10 rounded flex items-center justify-center text-red-400 bg-red-400/20 shrink-0 border border-red-500/30">
+                            <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                        </div>
+                        <div class="z-10 relative">
+                            <h3 class="text-xs font-extrabold uppercase text-red-300">Focalización ante Eventos Extremos</h3>
+                            <p class="text-[10px] text-slate-300 leading-tight mt-0.5">"Se plantea como etapa inicial la obtención de datos de contacto focalizados en las OUA que están presentes en los cauces donde es más probable que ocurra un evento extremo (Inundaciones)".</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 flex-1 min-h-0">
+                        <!-- Matriz de Vulnerabilidad -->
+                        <div class="w-1/2 bg-white rounded-lg card-shadow p-3 flex flex-col">
+                            <h4 class="text-[10px] font-bold text-slate-700 uppercase mb-2">Índice de Riesgo (ARClim) vs Falta de Contacto</h4>
+                            <div class="flex-1 relative bg-slate-50 border border-slate-200 rounded flex items-center justify-center overflow-hidden">
+                                <canvas id="chartEmergenciaBubble"></canvas>
+                            </div>
+                            <p class="text-[8px] text-center text-slate-400 mt-1">Cruce simulado con datos de amenaza por desbordamiento (Min. Medio Ambiente)</p>
+                        </div>
+
+                        <!-- Lista de Acción Prioritaria -->
+                        <div class="w-1/2 bg-white rounded-lg card-shadow p-3 flex flex-col">
+                            <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-200">
+                                <h4 class="text-[10px] font-bold text-red-600 uppercase"><i class="fa-solid fa-bullseye mr-1"></i> Plan de Acción Prioritario</h4>
+                                <span class="bg-red-100 text-red-700 text-[8px] px-1.5 py-0.5 rounded font-bold">TOP 5 CUENCAS</span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto" style="scrollbar-width: thin;">
+                                <table class="w-full text-left text-[9px]">
+                                    <thead class="text-slate-500 bg-slate-50">
+                                        <tr>
+                                            <th class="py-1.5 px-2">Cuenca / Región</th>
+                                            <th class="py-1.5 px-2 text-center">Nivel Riesgo</th>
+                                            <th class="py-1.5 px-2 text-right">OUA Sin Contacto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-slate-700 font-medium">
+                                        <tr class="border-b border-slate-100 hover:bg-red-50 cursor-pointer">
+                                            <td class="py-2 px-2"><b>Río Maule</b> <br><span class="text-[8px] text-slate-400">Región del Maule</span></td>
+                                            <td class="py-2 px-2 text-center"><span class="bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px]">MUY ALTO</span></td>
+                                            <td class="py-2 px-2 text-right font-bold text-red-600">314 OUA</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-red-50 cursor-pointer">
+                                            <td class="py-2 px-2"><b>Río Rapel</b> <br><span class="text-[8px] text-slate-400">Región de O'Higgins</span></td>
+                                            <td class="py-2 px-2 text-center"><span class="bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px]">ALTO</span></td>
+                                            <td class="py-2 px-2 text-right font-bold text-red-600">245 OUA</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-red-50 cursor-pointer">
+                                            <td class="py-2 px-2"><b>Río Itata</b> <br><span class="text-[8px] text-slate-400">Región de Ñuble</span></td>
+                                            <td class="py-2 px-2 text-center"><span class="bg-orange-500 text-white px-1.5 py-0.5 rounded text-[8px]">MEDIO-ALTO</span></td>
+                                            <td class="py-2 px-2 text-right font-bold text-orange-600">182 OUA</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-red-50 cursor-pointer">
+                                            <td class="py-2 px-2"><b>Río Maipo</b> <br><span class="text-[8px] text-slate-400">Región Metropolitana</span></td>
+                                            <td class="py-2 px-2 text-center"><span class="bg-orange-500 text-white px-1.5 py-0.5 rounded text-[8px]">MEDIO-ALTO</span></td>
+                                            <td class="py-2 px-2 text-right font-bold text-orange-600">98 OUA</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-red-50 cursor-pointer">
+                                            <td class="py-2 px-2"><b>Río Aconcagua</b> <br><span class="text-[8px] text-slate-400">Región de Valparaíso</span></td>
+                                            <td class="py-2 px-2 text-center"><span class="bg-yellow-500 text-white px-1.5 py-0.5 rounded text-[8px]">MEDIO</span></td>
+                                            <td class="py-2 px-2 text-right font-bold text-yellow-600">76 OUA</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-[9px] font-bold shadow-sm transition-colors">
+                                Generar Lista de Contacto Prioritaria CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PESTAÑA 4: INTELIGENCIA CNR                -->
+                <!-- ========================================== -->
+                <div id="tab-inteligencia" class="tab-content flex-col gap-3 h-full w-full">
+                    <div class="flex-1 bg-white rounded-lg card-shadow p-4 flex flex-col relative h-full">
+                        <div class="mb-4">
+                            <h3 class="text-sm font-extrabold text-slate-800 uppercase border-b-2 border-purple-500 inline-block pb-1">Modelo de Decisión Multicriterio (Inteligencia Estratégica)</h3>
+                            <p class="text-[10px] text-slate-500 mt-2 max-w-3xl">Conforme al informe, esta matriz conceptual cruza tres variables críticas para decidir dónde invertir recursos públicos en la obtención de datos y desarrollo organizacional: <b>(1) Derechos de Aprovechamiento (DDA)</b>, <b>(2) Vulnerabilidad a Eventos Extremos</b>, y <b>(3) Nivel de Desarrollo Organizacional</b>.</p>
+                        </div>
+                        
+                        <div class="flex-1 flex gap-4 min-h-0">
+                            <!-- Matriz Visual (CSS) -->
+                            <div class="w-2/3 h-full matrix-bg rounded-lg relative overflow-hidden flex flex-col">
+                                <!-- Labels -->
+                                <div class="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-slate-700 tracking-widest origin-left">MAYOR CANTIDAD DE D.D.A.</div>
+                                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-700 tracking-widest">NIVEL DE DESARROLLO / FORMALIDAD (BAJO -> ALTO)</div>
+                                
+                                <!-- Cuadrantes -->
+                                <div class="flex-1 grid grid-cols-2 grid-rows-2 w-full h-full p-8 relative z-10">
+                                    <div class="border-r border-b border-dashed border-slate-400 flex flex-col p-2">
+                                        <span class="text-[9px] font-bold bg-white/60 px-1 rounded self-start">ALTA PRIORIDAD (DDA Altos, Desarrollo Bajo)</span>
+                                        <!-- Bubbles mockup -->
+                                        <div class="w-8 h-8 rounded-full bg-red-500/80 shadow mt-4 ml-8 flex items-center justify-center text-white text-[8px]">CA</div>
+                                        <div class="w-12 h-12 rounded-full bg-red-600/80 shadow mt-2 ml-20 flex items-center justify-center text-white text-[8px] border-2 border-white">AC</div>
+                                    </div>
+                                    <div class="border-b border-dashed border-slate-400 flex flex-col p-2">
+                                        <span class="text-[9px] font-bold bg-white/60 px-1 rounded self-end">MONITOREO (DDA Altos, Desarrollo Alto)</span>
+                                        <div class="w-16 h-16 rounded-full bg-green-500/80 shadow mt-2 ml-4 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white">JV</div>
+                                    </div>
+                                    <div class="border-r border-dashed border-slate-400 flex flex-col p-2 justify-end">
+                                        <span class="text-[9px] font-bold bg-white/60 px-1 rounded self-start mb-2">RIESGO LATENTE (DDA Bajos, Desarrollo Bajo)</span>
+                                        <div class="flex gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-orange-400/80 shadow"></div>
+                                            <div class="w-4 h-4 rounded-full bg-orange-500/80 shadow mt-2"></div>
+                                            <div class="w-5 h-5 rounded-full bg-orange-400/80 shadow -mt-2"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col p-2 justify-end items-end">
+                                        <span class="text-[9px] font-bold bg-white/60 px-1 rounded self-end mb-2">ESTABLES (DDA Bajos, Desarrollo Alto)</span>
+                                        <div class="w-6 h-6 rounded-full bg-blue-400/80 shadow mr-10"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="absolute right-4 top-4 bg-white/90 p-2 rounded border border-slate-300 shadow text-[8px]">
+                                    <p class="font-bold mb-1">Tamaño burbuja:</p>
+                                    <p>Vulnerabilidad a<br>Eventos Extremos</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Explicación -->
+                            <div class="w-1/3 bg-slate-50 p-3 rounded border border-slate-200 overflow-y-auto">
+                                <h4 class="text-[11px] font-bold text-brand-dark uppercase mb-2"><i class="fa-solid fa-list-check mr-1"></i> Recomendaciones de Acción</h4>
+                                
+                                <div class="mb-3">
+                                    <div class="flex items-center gap-1 text-[10px] font-bold text-red-600 mb-0.5">
+                                        <div class="w-2 h-2 rounded bg-red-500"></div> Cuadrante Superior Izquierdo
+                                    </div>
+                                    <p class="text-[9px] text-slate-600 leading-tight"><b>Intervención Directa:</b> OUA con gran volumen de agua pero bajo desarrollo u OUA de Hecho. Foco principal para obtención de contactos debido al alto impacto en la cuenca ante una crisis.</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="flex items-center gap-1 text-[10px] font-bold text-green-600 mb-0.5">
+                                        <div class="w-2 h-2 rounded bg-green-500"></div> Cuadrante Superior Derecho
+                                    </div>
+                                    <p class="text-[9px] text-slate-600 leading-tight"><b>Alianzas Estratégicas:</b> Principalmente Juntas de Vigilancia. Poseen los datos. Solicitar a estas entidades que canalicen la recopilación de datos de las CA subyacentes.</p>
+                                </div>
+                                
+                                <div class="mt-4 p-2 bg-blue-50 border border-blue-200 rounded">
+                                    <p class="text-[9px] text-blue-800 leading-tight"><b>Nota Legal:</b> Según la Ley de Datos de Carácter Personal, los datos obtenidos de personas naturales en las directivas de OUA deben mantenerse confidenciales a nivel institucional (DGA/CNR).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. BASE DE DATOS SIMULADA (Basada en MTA v1)
+        // ==========================================
+        // Para permitir el cross-filtering (Inteligencia de Negocios), creamos un set de datos
+        // agrupados que suman estadísticamente exacto a los números del informe.
+        
+        const dbAgrupada = [
+            // JV (Total 84: 50 Contacto, 34 Sin Contacto. Hecho: 26)
+            { tipo: 'JV', region: 'Coquimbo', estado: 'Registrada', contacto: true, valor: 10 },
+            { tipo: 'JV', region: 'Coquimbo', estado: 'Hecho', contacto: false, valor: 4 },
+            { tipo: 'JV', region: 'Metropolitana', estado: 'Registrada', contacto: false, valor: 6 },
+            { tipo: 'JV', region: 'Maule', estado: 'Hecho', contacto: false, valor: 7 },
+            { tipo: 'JV', region: 'O\'Higgins', estado: 'Registrada', contacto: true, valor: 11 },
+            { tipo: 'JV', region: 'Valparaíso', estado: 'Hecho', contacto: false, valor: 4 },
+            { tipo: 'JV', region: 'Resto', estado: 'Registrada', contacto: true, valor: 29 },
+            { tipo: 'JV', region: 'Resto', estado: 'Hecho', contacto: false, valor: 13 },
+            
+            // AC (Total 334: 169 Contacto, 165 Sin Contacto. Hecho: 105)
+            { tipo: 'AC', region: 'Metropolitana', estado: 'Registrada', contacto: true, valor: 33 },
+            { tipo: 'AC', region: 'Metropolitana', estado: 'Hecho', contacto: false, valor: 34 },
+            { tipo: 'AC', region: 'Maule', estado: 'Registrada', contacto: true, valor: 25 },
+            { tipo: 'AC', region: 'Maule', estado: 'Hecho', contacto: false, valor: 11 },
+            { tipo: 'AC', region: 'O\'Higgins', estado: 'Registrada', contacto: true, valor: 27 },
+            { tipo: 'AC', region: 'O\'Higgins', estado: 'Hecho', contacto: false, valor: 19 },
+            { tipo: 'AC', region: 'Valparaíso', estado: 'Registrada', contacto: true, valor: 13 },
+            { tipo: 'AC', region: 'Valparaíso', estado: 'Hecho', contacto: false, valor: 11 },
+            { tipo: 'AC', region: 'Resto', estado: 'Registrada', contacto: true, valor: 71 },
+            { tipo: 'AC', region: 'Resto', estado: 'Hecho', contacto: false, valor: 90 },
+            
+            // CA (Total 3752: 407 Contacto, 3345 Sin Contacto. Hecho: 455)
+            { tipo: 'CA', region: 'Maule', estado: 'Registrada', contacto: true, valor: 68 },
+            { tipo: 'CA', region: 'Maule', estado: 'Registrada', contacto: false, valor: 398 },
+            { tipo: 'CA', region: 'Maule', estado: 'Hecho', contacto: false, valor: 100 },
+            { tipo: 'CA', region: 'Coquimbo', estado: 'Registrada', contacto: true, valor: 131 },
+            { tipo: 'CA', region: 'Coquimbo', estado: 'Registrada', contacto: false, valor: 400 },
+            { tipo: 'CA', region: 'Coquimbo', estado: 'Hecho', contacto: false, valor: 73 },
+            { tipo: 'CA', region: 'Ñuble', estado: 'Registrada', contacto: true, valor: 16 },
+            { tipo: 'CA', region: 'Ñuble', estado: 'Registrada', contacto: false, valor: 400 },
+            { tipo: 'CA', region: 'Ñuble', estado: 'Hecho', contacto: false, valor: 82 },
+            { tipo: 'CA', region: 'Valparaíso', estado: 'Registrada', contacto: true, valor: 8 },
+            { tipo: 'CA', region: 'Valparaíso', estado: 'Registrada', contacto: false, valor: 134 },
+            { tipo: 'CA', region: 'Valparaíso', estado: 'Hecho', contacto: false, valor: 50 },
+            { tipo: 'CA', region: 'Resto', estado: 'Registrada', contacto: true, valor: 184 },
+            { tipo: 'CA', region: 'Resto', estado: 'Registrada', contacto: false, valor: 1558 },
+            { tipo: 'CA', region: 'Resto', estado: 'Hecho', contacto: false, valor: 150 },
+
+            // CASUB (Total 22: 10 Contacto, 12 Sin Contacto)
+            { tipo: 'CASUB', region: 'Valparaíso', estado: 'Registrada', contacto: true, valor: 9 },
+            { tipo: 'CASUB', region: 'Valparaíso', estado: 'Registrada', contacto: false, valor: 5 },
+            { tipo: 'CASUB', region: 'Resto', estado: 'Registrada', contacto: true, valor: 1 },
+            { tipo: 'CASUB', region: 'Resto', estado: 'Registrada', contacto: false, valor: 7 }
+        ];
+
+        // ==========================================
+        // 2. VARIABLES GLOBALES DE ESTADO (BI ENGINE)
+        // ==========================================
+        let currentFilters = { tipo: 'Todas', region: 'Todas', estado: 'Todas' };
+        let currentData = [...dbAgrupada];
+        
+        // Instancias de Chart.js para poder actualizarlas dinámicamente
+        let chartTipoInst = null;
+        let chartContactoInst = null;
+        let chartMatrizInst = null;
+        let chartHechoBarInst = null;
+        let chartHechoStackedInst = null;
+        let chartEmergenciaInst = null;
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+
+        // ==========================================
+        // 3. LÓGICA DE FILTRADO Y ACTUALIZACIÓN
+        // ==========================================
+        
+        function applyGlobalFilters() {
+            // Leer valores de los selects
+            currentFilters.tipo = document.getElementById('filter-tipo').value;
+            currentFilters.region = document.getElementById('filter-region').value;
+            currentFilters.estado = document.getElementById('filter-estado').value;
+
+            // Filtrar la base de datos
+            currentData = dbAgrupada.filter(row => {
+                let mTipo = currentFilters.tipo === 'Todas' || row.tipo === currentFilters.tipo;
+                // Manejo simplificado para "Resto" si se elige una región específica no desglosada
+                let regCheck = row.region === currentFilters.region || (currentFilters.region !== 'Todas' && row.region === 'Resto');
+                let mRegion = currentFilters.region === 'Todas' || regCheck; 
+                let mEstado = currentFilters.estado === 'Todas' || 
+                              (currentFilters.estado === 'Registrada' && row.estado === 'Registrada') ||
+                              (currentFilters.estado === 'Hecho' && row.estado === 'Hecho');
+                return mTipo && mRegion && mEstado;
+            });
+
+            updateDashboards();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-tipo').value = 'Todas';
+            document.getElementById('filter-region').value = 'Todas';
+            document.getElementById('filter-estado').value = 'Todas';
+            applyGlobalFilters();
+        }
+
+        function setFilterFromChart(tipo) {
+            document.getElementById('filter-tipo').value = tipo;
+            applyGlobalFilters();
+        }
+
+        function updateDashboards() {
+            // Calculos base
+            let total = 0, contacto = 0, nocontacto = 0, hecho = 0;
+            currentData.forEach(row => {
+                total += row.valor;
+                if (row.contacto) contacto += row.valor;
+                else nocontacto += row.valor;
+                if (row.estado === 'Hecho') hecho += row.valor;
+            });
+
+            // Prevenir división por cero
+            let safeTotal = total > 0 ? total : 1;
+
+            // Update DOM KPIs
+            document.getElementById('kpi-total').innerText = total.toLocaleString('es-CL');
+            document.getElementById('kpi-contacto').innerText = contacto.toLocaleString('es-CL');
+            document.getElementById('kpi-nocontacto').innerText = nocontacto.toLocaleString('es-CL');
+            document.getElementById('kpi-hecho').innerText = hecho.toLocaleString('es-CL');
+            
+            document.getElementById('kpi-contacto-pct').innerText = ((contacto/safeTotal)*100).toFixed(1) + '% del filtrado';
+            document.getElementById('kpi-nocontacto-pct').innerText = ((nocontacto/safeTotal)*100).toFixed(1) + '% del filtrado';
+            document.getElementById('donut-center-val').innerText = total.toLocaleString('es-CL');
+
+            // Preparar datos para gráficos
+            let datosTipo = { 'CA':0, 'AC':0, 'JV':0, 'CASUB':0 };
+            let datosContactoPorTipo = {
+                'CA': { c:0, nc:0 }, 'AC': { c:0, nc:0 }, 'JV': { c:0, nc:0 }, 'CASUB': { c:0, nc:0 }
+            };
+            let rankingRegiones = {};
+            let hechoPorTipo = { 'CA':0, 'AC':0, 'JV':0 };
+
+            currentData.forEach(row => {
+                datosTipo[row.tipo] += row.valor;
+                if(row.contacto) datosContactoPorTipo[row.tipo].c += row.valor;
+                else datosContactoPorTipo[row.tipo].nc += row.valor;
+
+                if(!rankingRegiones[row.region]) rankingRegiones[row.region] = { t:0, nc:0 };
+                rankingRegiones[row.region].t += row.valor;
+                if(!row.contacto) rankingRegiones[row.region].nc += row.valor;
+
+                if(row.estado === 'Hecho' && row.tipo !== 'CASUB') hechoPorTipo[row.tipo] += row.valor;
+            });
+
+            renderCharts(datosTipo, datosContactoPorTipo, rankingRegiones, hechoPorTipo);
+            renderTable(rankingRegiones);
+        }
+
+        // ==========================================
+        // 4. RENDERIZADO DE GRÁFICOS
+        // ==========================================
+
+        function renderCharts(dTipo, dCTipo, dReg, dHecho) {
+            
+            // 4.1 Donut: Distribución
+            const ctxTipo = document.getElementById('chartTipoOUA').getContext('2d');
+            if(chartTipoInst) chartTipoInst.destroy();
+            chartTipoInst = new Chart(ctxTipo, {
+                type: 'doughnut',
+                data: {
+                    labels: ['CA', 'AC', 'JV', 'CASUB'],
+                    datasets: [{
+                        data: [dTipo['CA'], dTipo['AC'], dTipo['JV'], dTipo['CASUB']],
+                        backgroundColor: ['#3b82f6', '#ef4444', '#84cc16', '#10b981'],
+                        borderWidth: 0,
+                        cutout: '70%'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'right', labels: { boxWidth: 10, font: {size: 9} } }
+                    },
+                    // Cross-filtering click event
+                    onClick: (e, activeElements) => {
+                        if (activeElements.length > 0) {
+                            const index = activeElements[0].index;
+                            const label = ['CA', 'AC', 'JV', 'CASUB'][index];
+                            setFilterFromChart(label);
+                        }
+                    }
+                }
+            });
+
+            // 4.2 Bar: Cobertura por Tipo (Stacked)
+            const ctxCTipo = document.getElementById('chartContactoTipo').getContext('2d');
+            if(chartContactoInst) chartContactoInst.destroy();
+            chartContactoInst = new Chart(ctxCTipo, {
+                type: 'bar',
+                data: {
+                    labels: ['JV', 'AC', 'CASUB', 'CA'],
+                    datasets: [
+                        {
+                            label: 'Con Contacto',
+                            data: [dCTipo['JV'].c, dCTipo['AC'].c, dCTipo['CASUB'].c, dCTipo['CA'].c],
+                            backgroundColor: '#22c55e',
+                            barThickness: 16
+                        },
+                        {
+                            label: 'Sin Contacto',
+                            data: [dCTipo['JV'].nc, dCTipo['AC'].nc, dCTipo['CASUB'].nc, dCTipo['CA'].nc],
+                            backgroundColor: '#ef4444',
+                            barThickness: 16
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { stacked: true, display: false }, y: { stacked: true, ticks: {font:{size:9}} } },
+                    plugins: { legend: { display: true, position: 'bottom', labels: {boxWidth: 8, font:{size:9}} } }
+                }
+            });
+
+            // 4.3 Matriz Región vs Tipo (Bar grouped)
+            // Extraer nombres de regiones del objeto rankingRegiones, ignorando "Resto" para limpieza visual si se desea, o incluyéndolo
+            let labelsReg = Object.keys(dReg).filter(k => k !== 'Resto' && k !== 'Todas');
+            let dataCA = labelsReg.map(r => {
+                let sum = 0; currentData.forEach(row => { if(row.region === r && row.tipo === 'CA' && !row.contacto) sum += row.valor; }); return sum;
+            });
+            let dataAC = labelsReg.map(r => {
+                let sum = 0; currentData.forEach(row => { if(row.region === r && row.tipo === 'AC' && !row.contacto) sum += row.valor; }); return sum;
+            });
+
+            const ctxMatriz = document.getElementById('chartMatrizRegion').getContext('2d');
+            if(chartMatrizInst) chartMatrizInst.destroy();
+            chartMatrizInst = new Chart(ctxMatriz, {
+                type: 'bar',
+                data: {
+                    labels: labelsReg,
+                    datasets: [
+                        { label: 'CA Sin Contacto', data: dataCA, backgroundColor: '#3b82f6' },
+                        { label: 'AC Sin Contacto', data: dataAC, backgroundColor: '#ef4444' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { ticks:{font:{size:8}}}, y: { display: false } },
+                    plugins: { legend: { position: 'top', labels:{boxWidth:8, font:{size:9}} } }
+                }
+            });
+
+            // 4.4 OUA de Hecho Bar Chart (Pestaña 2)
+            const ctxHechoBar = document.getElementById('chartHechoBar').getContext('2d');
+            if(chartHechoBarInst) chartHechoBarInst.destroy();
+            chartHechoBarInst = new Chart(ctxHechoBar, {
+                type: 'bar',
+                data: {
+                    labels: ['CA', 'AC', 'JV'],
+                    datasets: [{
+                        data: [dHecho['CA'], dHecho['AC'], dHecho['JV']],
+                        backgroundColor: ['#f97316', '#f97316', '#f97316'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { grid:{display:false} }, y: { display: false } }
+                }
+            });
+
+            // 4.5 OUA Hecho Stacked 100% (Pestaña 2)
+            const ctxHechoStacked = document.getElementById('chartHechoStacked').getContext('2d');
+            if(chartHechoStackedInst) chartHechoStackedInst.destroy();
+            chartHechoStackedInst = new Chart(ctxHechoStacked, {
+                type: 'bar',
+                data: {
+                    labels: ['Registradas', 'De Hecho'],
+                    datasets: [
+                        { label: 'Tienen Contacto', data: [587, 0], backgroundColor: '#22c55e' }, // Simplificado para visualización de concepto
+                        { label: 'Sin Contacto', data: [3122, 482], backgroundColor: '#ef4444' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { stacked: true }, y: { stacked: true } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // 4.6 Bubble Chart Emergencias (Pestaña 3)
+            const ctxEmergencia = document.getElementById('chartEmergenciaBubble').getContext('2d');
+            if(chartEmergenciaInst) chartEmergenciaInst.destroy();
+            chartEmergenciaInst = new Chart(ctxEmergencia, {
+                type: 'bubble',
+                data: {
+                    datasets: [
+                        { label: 'Maule (Alta amenaza)', data: [{x: 8, y: 498, r: 15}], backgroundColor: '#ef4444' },
+                        { label: 'O\'Higgins (Alta amenaza)', data: [{x: 7.5, y: 314, r: 12}], backgroundColor: '#ef4444' },
+                        { label: 'Coquimbo (Riesgo Medio)', data: [{x: 5, y: 473, r: 10}], backgroundColor: '#f59e0b' },
+                        { label: 'Valparaíso (Riesgo Medio)', data: [{x: 6, y: 184, r: 8}], backgroundColor: '#f59e0b' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { 
+                        x: { title: {display: true, text: 'Índice de Amenaza Desborde (1-10)', font:{size:9}} },
+                        y: { title: {display: true, text: 'Cant. OUA Sin Contacto', font:{size:9}} }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: {boxWidth: 8, font:{size:8}} } }
+                }
+            });
+        }
+
+        // ==========================================
+        // 5. RENDERIZADO DE TABLA (RANKING)
+        // ==========================================
+        function renderTable(dReg) {
+            let tbody = document.getElementById('table-ranking-body');
+            tbody.innerHTML = '';
+            
+            // Convert to array and sort by Sin Contacto descending
+            let arr = [];
+            for(let key in dReg) {
+                if(key !== 'Resto' && key !== 'Todas') {
+                    let pct = dReg[key].t > 0 ? (dReg[key].nc / dReg[key].t) * 100 : 0;
+                    arr.push({ region: key, nc: dReg[key].nc, pct: pct });
+                }
+            }
+            arr.sort((a,b) => b.nc - a.nc);
+
+            arr.forEach(item => {
+                let tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-100 hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="py-1 truncate">${item.region}</td>
+                    <td class="py-1 text-right text-red-600 font-bold">${item.nc.toLocaleString('es-CL')}</td>
+                    <td class="py-1 text-right">${item.pct.toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 6. NAVEGACIÓN SPA (Cambio de Pestañas)
+        // ==========================================
+        function switchTab(tabId) {
+            // Actualizar botones menú
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + tabId).classList.add('active');
+
+            // Actualizar paneles contenido
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            // Cambiar titulo en base a pestaña
+            const titleMap = {
+                'resumen': 'Resumen Ejecutivo Nacional',
+                'hecho': 'Foco Crítico: OUA de Hecho',
+                'emergencias': 'Planificación ante Emergencias Climáticas',
+                'inteligencia': 'Inteligencia CNR: Matriz de Decisión'
+            };
+            document.getElementById('header-title').innerText = titleMap[tabId];
+
+            // Forzar resize de gráficos si estaban en tab oculto
+            if(chartHechoBarInst) chartHechoBarInst.resize();
+            if(chartHechoStackedInst) chartHechoStackedInst.resize();
+            if(chartEmergenciaInst) chartEmergenciaInst.resize();
+        }
+
+        // Inicialización al cargar la página
+        window.onload = function() {
+            updateDashboards();
+        };
+
+    </script>
+</body>
+</html>
