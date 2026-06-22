@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard OUA MTA</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+            color: #1e293b; /* slate-800 */
+        }
+        
+        /* Custom scrollbar just in case, though hidden is applied to body */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        .bg-brand-dark { background-color: #0f172a; } /* Sidebar/Header */
+        .text-brand-dark { color: #0f172a; }
+        .bg-brand-accent { background-color: #1e293b; } /* Header selects */
+        
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        /* Utility to force scaling text slightly on smaller screens to prevent overflow */
+        @media (max-height: 800px) {
+            html { font-size: 14px; }
+        }
+        @media (max-height: 650px) {
+            html { font-size: 12px; }
+        }
+
+        /* SVG Progress Circle Styles */
+        .circular-chart { display: block; margin: 0 auto; max-width: 80%; max-height: 250px; }
+        .circle-bg { fill: none; stroke: #eee; stroke-width: 3.8; }
+        .circle { fill: none; stroke-width: 2.8; stroke-linecap: round; animation: progress 1s ease-out forwards; }
+        @keyframes progress { 0% { stroke-dasharray: 0 100; } }
+        
+        .map-container {
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23f8fafc"/><path d="M0 0l100 100M100 0L0 100" stroke="%23e2e8f0" stroke-width="0.5"/></svg>');
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col text-sm">
+
+    <div class="flex h-full w-full">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-56 bg-brand-dark text-slate-300 flex flex-col flex-shrink-0 z-20">
+            <!-- Sidebar padding top equivalent to header height if needed, but here menu starts directly -->
+            <div class="h-16 flex items-center justify-center border-b border-slate-700/50 mt-16">
+                <!-- Spacing to push menu down slightly -->
+            </div>
+            <nav class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto hidden-scrollbar px-3">
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 bg-blue-600/20 text-blue-400 rounded-md border-l-4 border-blue-500 transition-colors">
+                    <i class="fa-solid fa-house mb-1 text-lg"></i>
+                    <span class="text-[10px] font-semibold text-center leading-tight">Resumen<br>Ejecutivo</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-clock-rotate-left mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Cobertura<br>de Contacto</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-clipboard-check mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Calidad<br>de Datos</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-map-location-dot mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Gestión<br>Territorial</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-triangle-exclamation mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Organizaciones<br>Críticas</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-users-slash mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">OUA de Hecho</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent">
+                    <i class="fa-solid fa-cloud-bolt mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Emergencias<br>Climáticas</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center py-3 px-2 hover:bg-slate-800 rounded-md transition-colors border-l-4 border-transparent mt-auto">
+                    <i class="fa-solid fa-file-contract mb-1 text-lg"></i>
+                    <span class="text-[10px] text-center leading-tight">Inteligencia<br>CNR</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col relative z-10 w-full min-w-0">
+            
+            <!-- HEADER -->
+            <header class="h-16 bg-brand-dark text-white flex items-center justify-between px-6 absolute top-0 left-0 w-full z-30 transform -translate-x-56" style="width: calc(100% + 14rem);">
+                <div class="flex items-center gap-4 pl-56">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-brand-dark">
+                        <i class="fa-solid fa-leaf text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight uppercase tracking-wide">Catálogo Nacional de Organizaciones de Usuarios de Aguas (OUA)</h1>
+                        <h2 class="text-xs text-slate-300 font-medium">Resumen Ejecutivo</h2>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex flex-col">
+                        <label class="text-[9px] text-slate-400 mb-0.5">Tipo de OUA</label>
+                        <select class="bg-brand-accent text-white text-xs py-1 px-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 min-w-[100px]">
+                            <option>Todas</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[9px] text-slate-400 mb-0.5">Región</label>
+                        <select class="bg-brand-accent text-white text-xs py-1 px-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 min-w-[100px]">
+                            <option>Todas</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[9px] text-slate-400 mb-0.5">Provincia</label>
+                        <select class="bg-brand-accent text-white text-xs py-1 px-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 min-w-[100px]">
+                            <option>Todas</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[9px] text-slate-400 mb-0.5">Comuna</label>
+                        <select class="bg-brand-accent text-white text-xs py-1 px-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 min-w-[100px]">
+                            <option>Todas</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center ml-4 text-right">
+                        <i class="fa-regular fa-calendar-days text-2xl mr-2 text-slate-300"></i>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-slate-400">Fecha de actualización</span>
+                            <span class="text-xs font-semibold">31-05-2025</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DASHBOARD CONTENT AREA -->
+            <div class="flex-1 mt-16 p-3 flex flex-col gap-3 overflow-hidden bg-slate-200/50">
+                
+                <!-- ROW 1: KPIs -->
+                <div class="flex h-20 gap-3">
+                    <!-- KPI 1 -->
+                    <div class="flex-1 bg-white rounded-lg card-shadow border-t-4 border-blue-600 p-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase">Total OUA</p>
+                            <p class="text-2xl font-extrabold text-blue-700 leading-none mt-1">4.191</p>
+                            <p class="text-[10px] text-slate-400 mt-1">100% del total</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <i class="fa-solid fa-users text-xl"></i>
+                        </div>
+                    </div>
+                    <!-- KPI 2 -->
+                    <div class="flex-1 bg-white rounded-lg card-shadow border-t-4 border-green-500 p-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase">Con Contacto</p>
+                            <p class="text-2xl font-extrabold text-green-600 leading-none mt-1">587</p>
+                            <p class="text-[10px] text-slate-400 mt-1">14,0% del total</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-500">
+                            <i class="fa-solid fa-phone-volume text-xl"></i>
+                        </div>
+                    </div>
+                    <!-- KPI 3 -->
+                    <div class="flex-1 bg-white rounded-lg card-shadow border-t-4 border-red-500 p-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase">Sin Contacto</p>
+                            <p class="text-2xl font-extrabold text-red-600 leading-none mt-1">3.604</p>
+                            <p class="text-[10px] text-slate-400 mt-1">86,0% del total</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+                            <i class="fa-solid fa-phone-slash text-xl"></i>
+                        </div>
+                    </div>
+                    <!-- KPI 4 -->
+                    <div class="flex-1 bg-white rounded-lg card-shadow border-t-4 border-orange-500 p-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase">OUA de Hecho</p>
+                            <p class="text-2xl font-extrabold text-orange-500 leading-none mt-1">586</p>
+                            <p class="text-[10px] text-slate-400 mt-1">14,0% del total</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                            <i class="fa-solid fa-user-shield text-xl"></i>
+                        </div>
+                    </div>
+                    <!-- KPI 5 -->
+                    <div class="flex-1 bg-white rounded-lg card-shadow border-t-4 border-purple-500 p-3 flex items-center justify-between">
+                        <div class="w-full">
+                            <p class="text-xs font-bold text-slate-500 uppercase">Cobertura Nacional</p>
+                            <div class="flex items-center gap-3 mt-1">
+                                <i class="fa-solid fa-chart-simple text-3xl text-purple-600"></i>
+                                <div>
+                                    <p class="text-2xl font-extrabold text-purple-700 leading-none">14,0%</p>
+                                    <p class="text-[10px] text-slate-400 mt-1 leading-tight">% OUA con al menos un<br>dato de contacto</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Main Charts -->
+                <div class="flex h-[32%] gap-3">
+                    
+                    <!-- Distribución Donut -->
+                    <div class="w-[30%] bg-white rounded-lg card-shadow p-3 flex flex-col relative">
+                        <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2">Distribución por tipo de OUA</h3>
+                        <div class="flex-1 relative flex items-center justify-center">
+                            <div class="w-full h-full max-h-[160px] relative">
+                                <canvas id="chartDistribucion"></canvas>
+                                <!-- Custom Legend built with HTML to perfectly match mockup -->
+                                <div class="absolute top-1/2 -translate-y-1/2 right-0 flex flex-col gap-2 text-[10px] w-[50%] pl-2">
+                                    <div class="flex items-start gap-1">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mt-0.5 shrink-0"></div>
+                                        <span class="text-slate-600 leading-tight">Comunidades de Aguas (CA)<br><span class="font-bold text-slate-800 text-xs">3.752</span> (89,5%)</span>
+                                    </div>
+                                    <div class="flex items-start gap-1">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-[#ef4444] mt-0.5 shrink-0"></div>
+                                        <span class="text-slate-600 leading-tight">Asociaciones de Canalistas (AC)<br><span class="font-bold text-slate-800 text-xs">334</span> (8,0%)</span>
+                                    </div>
+                                    <div class="flex items-start gap-1">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-[#84cc16] mt-0.5 shrink-0"></div>
+                                        <span class="text-slate-600 leading-tight">Juntas de Vigilancia (JV)<br><span class="font-bold text-slate-800 text-xs">84</span> (2,0%)</span>
+                                    </div>
+                                    <div class="flex items-start gap-1">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-[#10b981] mt-0.5 shrink-0"></div>
+                                        <span class="text-slate-600 leading-tight">Comunidades de Aguas<br>Subterráneas (CASUB)<br><span class="font-bold text-slate-800 text-xs">22</span> (0,5%)</span>
+                                    </div>
+                                </div>
+                                <!-- Center Text for Donut -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pr-[50%]">
+                                    <span class="text-xl font-bold text-brand-dark leading-none">4.191</span>
+                                    <span class="text-[10px] text-slate-500">Total</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cobertura de Contacto Bar Chart -->
+                    <div class="w-[40%] bg-white rounded-lg card-shadow p-3 flex flex-col">
+                        <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-1">Cobertura de contacto por tipo de OUA</h3>
+                        <div class="flex-1 relative w-full h-full min-h-0">
+                            <canvas id="chartCobertura"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Mapa Cobertura por Región -->
+                    <div class="w-[30%] bg-white rounded-lg card-shadow p-3 flex flex-col">
+                        <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2">Cobertura por Región</h3>
+                        <div class="flex-1 flex gap-2 overflow-hidden">
+                            <!-- Abstract SVG Map of Chile with gradient coloring -->
+                            <div class="w-1/3 flex flex-col items-center justify-center relative">
+                                <svg viewBox="0 0 100 400" class="h-full max-h-[180px] w-auto filter drop-shadow-sm">
+                                    <!-- Highly simplified representation of regions for visual effect -->
+                                    <path d="M40 10 L50 15 L45 30 L35 25 Z" fill="#22c55e" /> <!-- Arica/Tarapaca -->
+                                    <path d="M45 30 L55 35 L50 60 L38 50 Z" fill="#84cc16" /> <!-- Antofa/Atacama -->
+                                    <path d="M50 60 L60 65 L55 90 L40 85 Z" fill="#eab308" /> <!-- Coquimbo/Valpo -->
+                                    <path d="M55 90 L65 95 L62 130 L45 120 Z" fill="#f97316" /> <!-- RM/Ohi/Maule (Reddish/Orange) -->
+                                    <path d="M62 130 L68 135 L60 170 L48 160 Z" fill="#ef4444" /> <!-- Nuble/Biobio/Araucania (Red) -->
+                                    <path d="M60 170 L65 175 L55 230 L42 220 Z" fill="#ef4444" /> <!-- Rios/Lagos -->
+                                    <path d="M55 230 L60 235 L45 300 L30 280 Z" fill="#f97316" /> <!-- Aysen -->
+                                    <path d="M45 300 L55 310 L40 380 L20 350 Z" fill="#eab308" /> <!-- Magallanes -->
+                                </svg>
+                                <!-- Legend Gradient -->
+                                <div class="absolute bottom-0 w-full px-2">
+                                    <div class="h-2 w-full bg-gradient-to-r from-red-500 via-orange-400 to-green-500 rounded-sm"></div>
+                                    <div class="flex justify-between text-[8px] text-slate-500 mt-0.5">
+                                        <span>6%</span>
+                                        <span>25%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Data Table -->
+                            <div class="w-2/3 overflow-y-auto hidden-scrollbar">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-slate-200">
+                                            <th class="py-1 text-[10px] font-semibold text-slate-600">Región</th>
+                                            <th class="py-1 text-[10px] font-semibold text-slate-600 text-right">% Cobertura</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-[9px] text-slate-600">
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Arica y Parinacota</td><td class="text-right">23,1%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Tarapacá</td><td class="text-right">17,8%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Antofagasta</td><td class="text-right">16,0%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Atacama</td><td class="text-right">18,9%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Coquimbo</td><td class="text-right">21,2%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Valparaíso</td><td class="text-right">17,5%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Metropolitana</td><td class="text-right">18,8%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">O'Higgins</td><td class="text-right">16,2%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Maule</td><td class="text-right">13,7%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Ñuble</td><td class="text-right">10,6%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Biobío</td><td class="text-right">12,3%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">La Araucanía</td><td class="text-right">9,2%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Los Ríos</td><td class="text-right">8,5%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Los Lagos</td><td class="text-right">9,1%</td></tr>
+                                        <tr class="border-b border-slate-100"><td class="py-0.5 truncate">Aysén</td><td class="text-right">7,8%</td></tr>
+                                        <tr><td class="py-0.5 truncate">Magallanes</td><td class="text-right">6,3%</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 3: Bottom Analytics -->
+                <div class="flex flex-1 gap-3 min-h-0">
+                    
+                    <!-- Box Left: Calidad & OUA Hecho (Stacked vertically to match mockup proportions) -->
+                    <div class="w-[28%] flex flex-col gap-3 h-full">
+                        <!-- Calidad de Datos -->
+                        <div class="bg-white rounded-lg card-shadow p-3 flex-1 flex flex-col relative">
+                            <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2">Calidad de Datos (A nivel nacional)</h3>
+                            <div class="flex-1 flex justify-around items-center">
+                                <!-- Teléfono -->
+                                <div class="flex flex-col items-center">
+                                    <div class="relative w-12 h-12">
+                                        <svg viewBox="0 0 36 36" class="circular-chart">
+                                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            <path class="circle text-green-500" stroke-dasharray="14, 100" stroke="currentColor" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs text-green-600">14%</div>
+                                    </div>
+                                    <i class="fa-solid fa-phone text-[10px] text-green-500 mt-1"></i>
+                                    <span class="text-[9px] text-slate-600 leading-tight text-center mt-0.5">Con Teléfono<br><span class="font-semibold text-blue-600">587 OUA</span></span>
+                                </div>
+                                <!-- Correo -->
+                                <div class="flex flex-col items-center">
+                                    <div class="relative w-12 h-12">
+                                        <svg viewBox="0 0 36 36" class="circular-chart">
+                                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            <path class="circle text-blue-500" stroke-dasharray="12, 100" stroke="currentColor" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs text-blue-600">12%</div>
+                                    </div>
+                                    <i class="fa-solid fa-envelope text-[10px] text-blue-500 mt-1"></i>
+                                    <span class="text-[9px] text-slate-600 leading-tight text-center mt-0.5">Con Correo<br><span class="font-semibold text-blue-600">502 OUA</span></span>
+                                </div>
+                                <!-- Dirección -->
+                                <div class="flex flex-col items-center">
+                                    <div class="relative w-12 h-12">
+                                        <svg viewBox="0 0 36 36" class="circular-chart">
+                                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            <path class="circle text-purple-500" stroke-dasharray="10, 100" stroke="currentColor" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs text-purple-600">10%</div>
+                                    </div>
+                                    <i class="fa-solid fa-location-dot text-[10px] text-purple-500 mt-1"></i>
+                                    <span class="text-[9px] text-slate-600 leading-tight text-center mt-0.5">Con Dirección<br><span class="font-semibold text-blue-600">418 OUA</span></span>
+                                </div>
+                                <!-- Web -->
+                                <div class="flex flex-col items-center">
+                                    <div class="relative w-12 h-12">
+                                        <svg viewBox="0 0 36 36" class="circular-chart">
+                                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            <path class="circle text-orange-400" stroke-dasharray="4, 100" stroke="currentColor" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs text-orange-500">4%</div>
+                                    </div>
+                                    <i class="fa-solid fa-globe text-[10px] text-orange-400 mt-1"></i>
+                                    <span class="text-[9px] text-slate-600 leading-tight text-center mt-0.5">Con Página Web<br><span class="font-semibold text-blue-600">168 OUA</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OUA de Hecho Bar Chart -->
+                        <div class="bg-white rounded-lg card-shadow p-3 flex-1 flex flex-col relative">
+                            <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-1">OUA de Hecho por Tipo</h3>
+                            <div class="flex-1 relative w-full h-full flex items-end">
+                                <div class="w-2/3 h-full pb-4">
+                                    <canvas id="chartHecho"></canvas>
+                                </div>
+                                <!-- Highlight Box -->
+                                <div class="absolute right-3 top-8 border-2 border-red-500/30 rounded bg-red-50/50 p-2 text-center w-[30%]">
+                                    <p class="text-[9px] font-bold text-slate-700 leading-tight">OUA DE HECHO<br>SIN CONTACTO</p>
+                                    <p class="text-2xl font-extrabold text-red-600 leading-none my-1">482</p>
+                                    <p class="text-[8px] text-slate-500 leading-tight">82,3% del total de<br>OUA de hecho</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle Box: OUA Sin Contacto Bar Chart -->
+                    <div class="w-[28%] bg-white rounded-lg card-shadow p-3 flex flex-col">
+                        <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2">OUA Sin Contacto por Tipo</h3>
+                        <div class="flex-1 relative w-full h-full min-h-0">
+                            <canvas id="chartSinContacto"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Right Block: Map & Ranking -->
+                    <div class="flex-1 flex gap-3 h-full">
+                        <!-- Mapa Territorial (Placeholder) -->
+                        <div class="flex-1 bg-white rounded-lg card-shadow p-3 flex flex-col relative overflow-hidden">
+                            <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2 z-10">Distribución Territorial (Mapa)</h3>
+                            <div class="absolute inset-0 mt-8 map-container overflow-hidden rounded-b-lg border-t border-slate-100 flex items-center justify-center">
+                                <!-- Fake map visual representation -->
+                                <div class="relative w-full h-full max-w-[200px] bg-cover bg-center opacity-60 mix-blend-multiply" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Relief_Map_of_Chile.jpg/300px-Relief_Map_of_Chile.jpg');"></div>
+                                <!-- Placed points simulating density -->
+                                <div class="absolute top-[20%] left-[55%] w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.8)]"></div>
+                                <div class="absolute top-[25%] left-[53%] w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.8)]"></div>
+                                <div class="absolute top-[35%] left-[50%] w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]"></div>
+                                <div class="absolute top-[38%] left-[48%] w-3 h-3 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]"></div>
+                                <div class="absolute top-[40%] left-[47%] w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                                <div class="absolute top-[45%] left-[45%] w-4 h-4 rounded-full bg-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                                <div class="absolute top-[46%] left-[45%] w-2 h-2 rounded-full bg-blue-600"></div>
+                                <div class="absolute top-[50%] left-[43%] w-3 h-3 rounded-full bg-red-500/60"></div>
+                                <div class="absolute top-[55%] left-[40%] w-2 h-2 rounded-full bg-green-500"></div>
+                                <div class="absolute top-[60%] left-[38%] w-1 h-1 rounded-full bg-yellow-500"></div>
+                                <div class="absolute top-[70%] left-[35%] w-1 h-1 rounded-full bg-blue-500"></div>
+                            </div>
+                            
+                            <!-- Map Legend / Controls overlay -->
+                            <div class="absolute top-10 left-3 bg-white/90 backdrop-blur-sm p-2 rounded shadow border border-slate-100 z-10 text-[9px]">
+                                <p class="font-bold text-slate-700 mb-1">Tipo de OUA</p>
+                                <div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-[#3b82f6]"></div>CA</div>
+                                <div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-[#ef4444]"></div>AC</div>
+                                <div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-[#eab308]"></div>JV</div>
+                                <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-[#10b981]"></div>CASUB</div>
+                            </div>
+                            <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded shadow flex flex-col border border-slate-200 z-10">
+                                <button class="w-6 h-6 flex items-center justify-center border-b border-slate-200 hover:bg-slate-50"><i class="fa-solid fa-plus text-slate-600 text-[10px]"></i></button>
+                                <button class="w-6 h-6 flex items-center justify-center hover:bg-slate-50"><i class="fa-solid fa-minus text-slate-600 text-[10px]"></i></button>
+                            </div>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/100px-Google_2015_logo.svg.png" class="absolute bottom-1 left-2 h-3 opacity-50 z-10 grayscale" alt="Google">
+                        </div>
+
+                        <!-- Ranking Table -->
+                        <div class="w-[45%] bg-white rounded-lg card-shadow p-3 flex flex-col">
+                            <h3 class="text-[11px] font-bold text-slate-700 uppercase mb-2">Ranking: Regiones con más OUA sin contacto</h3>
+                            <div class="flex-1 overflow-y-auto hidden-scrollbar">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b-2 border-slate-200 text-[9px] text-slate-500 uppercase">
+                                            <th class="py-1.5 w-6 text-center"></th>
+                                            <th class="py-1.5">Región</th>
+                                            <th class="py-1.5 text-right">Total OUA</th>
+                                            <th class="py-1.5 text-right">Sin Contacto</th>
+                                            <th class="py-1.5 text-right">% Sin Contacto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-[10px] text-slate-700 font-medium">
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                            <td class="py-1.5 text-center text-slate-400">1</td>
+                                            <td class="py-1.5">Maule</td>
+                                            <td class="py-1.5 text-right">742</td>
+                                            <td class="py-1.5 text-right text-red-600">649</td>
+                                            <td class="py-1.5 text-right">87,5%</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                            <td class="py-1.5 text-center text-slate-400">2</td>
+                                            <td class="py-1.5">Ñuble</td>
+                                            <td class="py-1.5 text-right">420</td>
+                                            <td class="py-1.5 text-right text-red-600">380</td>
+                                            <td class="py-1.5 text-right">90,5%</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                            <td class="py-1.5 text-center text-slate-400">3</td>
+                                            <td class="py-1.5">La Araucanía</td>
+                                            <td class="py-1.5 text-right">457</td>
+                                            <td class="py-1.5 text-right text-red-600">418</td>
+                                            <td class="py-1.5 text-right">91,5%</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                            <td class="py-1.5 text-center text-slate-400">4</td>
+                                            <td class="py-1.5">Coquimbo</td>
+                                            <td class="py-1.5 text-right">332</td>
+                                            <td class="py-1.5 text-right text-red-600">259</td>
+                                            <td class="py-1.5 text-right">78,0%</td>
+                                        </tr>
+                                        <tr class="border-b border-slate-200 hover:bg-slate-50">
+                                            <td class="py-1.5 text-center text-slate-400">5</td>
+                                            <td class="py-1.5">Los Lagos</td>
+                                            <td class="py-1.5 text-right">463</td>
+                                            <td class="py-1.5 text-right text-red-600">418</td>
+                                            <td class="py-1.5 text-right">90,3%</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="font-bold text-slate-800 bg-slate-50 text-[10px]">
+                                            <td></td>
+                                            <td class="py-2">Total general</td>
+                                            <td class="py-2 text-right">4.191</td>
+                                            <td class="py-2 text-right">3.604</td>
+                                            <td class="py-2 text-right">86,0%</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Source Info relative to main content area -->
+                <div class="absolute bottom-2 left-6 text-[8px] text-slate-400 leading-tight z-0 opacity-80 pointer-events-none transform -translate-x-56" style="width: 14rem;">
+                    <p class="mb-1">Fuente:<br>Bases de datos OUA<br>DGA - CNR</p>
+                    <p>Elaboración:<br>Unidad de Estudios<br>CNR</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Set default font for Chart.js
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b'; // slate-500
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 4;
+
+        // 1. Gráfico Distribución (Donut)
+        const ctxDist = document.getElementById('chartDistribucion').getContext('2d');
+        new Chart(ctxDist, {
+            type: 'doughnut',
+            data: {
+                labels: ['CA', 'AC', 'JV', 'CASUB'],
+                datasets: [{
+                    data: [3752, 334, 84, 22],
+                    backgroundColor: ['#3b82f6', '#ef4444', '#84cc16', '#10b981'], // Blue, Red, Light Green, Green
+                    borderWidth: 0,
+                    cutout: '65%' // Size of the inner hole
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { right: 80 } }, // Make room for custom HTML legend
+                plugins: {
+                    legend: { display: false }, // Using custom HTML legend
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) { label += new Intl.NumberFormat('es-CL').format(context.parsed); }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Gráfico Cobertura de Contacto (Horizontal Bar)
+        const ctxCobertura = document.getElementById('chartCobertura').getContext('2d');
+        new Chart(ctxCobertura, {
+            type: 'bar',
+            data: {
+                labels: ['Juntas de Vigilancia (JV)', 'Asociaciones de Canalistas (AC)', 'Comunidades de Aguas\nSubterráneas (CASUB)', 'Comunidades de Aguas (CA)'],
+                datasets: [{
+                    label: '% OUA con contacto',
+                    data: [59.5, 50.6, 45.5, 10.8],
+                    backgroundColor: ['#22c55e', '#22c55e', '#22c55e', '#ef4444'], // Green, Green, Green, Red for the lowest
+                    barThickness: 16,
+                    borderRadius: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Makes it horizontal
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) { return context.parsed.x + '%'; }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { stepSize: 20, callback: function(value) { return value + '%'; }, font: { size: 9 } },
+                        grid: { color: '#f1f5f9', drawBorder: false }
+                    },
+                    y: {
+                        ticks: { font: { size: 9 }, color: '#475569' },
+                        grid: { display: false, drawBorder: false }
+                    }
+                },
+                animation: { duration: 1500, easing: 'easeOutQuart' }
+            }
+        });
+
+        // 3. Gráfico OUA de Hecho (Vertical Bar)
+        const ctxHecho = document.getElementById('chartHecho').getContext('2d');
+        new Chart(ctxHecho, {
+            type: 'bar',
+            data: {
+                labels: ['CA', 'AC', 'JV'],
+                datasets: [{
+                    data: [455, 105, 26],
+                    backgroundColor: ['#22c55e', '#3b82f6', '#f97316'], // Green, Blue, Orange
+                    barThickness: 24,
+                    borderRadius: { topLeft: 4, topRight: 4 }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { display: false } // We'll just use standard tooltips to save space, or could use a plugin
+                },
+                scales: {
+                    x: {
+                        grid: { display: false, drawBorder: true, borderColor: '#e2e8f0' },
+                        ticks: { font: { size: 10, weight: 'bold' }, color: '#475569' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 500,
+                        ticks: { stepSize: 100, font: { size: 9 } },
+                        grid: { color: '#f8fafc', drawBorder: false }
+                    }
+                },
+                // Add labels on top of bars
+                animation: {
+                    onComplete: function() {
+                        var chartInstance = this,
+                        ctx = chartInstance.ctx;
+                        ctx.font = Chart.helpers.fontString(10, 'normal', Chart.defaults.font.family);
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillStyle = '#475569';
+
+                        this.data.datasets.forEach(function(dataset, i) {
+                            var meta = chartInstance.getDatasetMeta(i);
+                            meta.data.forEach(function(bar, index) {
+                                var data = dataset.data[index];
+                                ctx.fillText(data, bar.x, bar.y - 2);
+                            });
+                        });
+                    }
+                }
+            }
+        });
+
+        // 4. Gráfico OUA Sin Contacto (Horizontal Bar RED)
+        const ctxSinContacto = document.getElementById('chartSinContacto').getContext('2d');
+        new Chart(ctxSinContacto, {
+            type: 'bar',
+            data: {
+                labels: ['Comunidades de Aguas (CA)', 'Asociaciones de Canalistas (AC)', 'Juntas de Vigilancia (JV)', 'Comunidades de Aguas\nSubterráneas (CASUB)'],
+                datasets: [{
+                    data: [3345, 165, 34, 12],
+                    backgroundColor: '#ef4444', // Red
+                    barThickness: 12,
+                    borderRadius: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { right: 30 } }, // Space for numbers
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 4000,
+                        ticks: { stepSize: 1000, font: { size: 9 }, callback: function(val) { return val === 0 ? '0' : val.toLocaleString('es-CL'); } },
+                        grid: { color: '#f1f5f9', drawBorder: false }
+                    },
+                    y: {
+                        ticks: { font: { size: 9 }, color: '#475569' },
+                        grid: { display: false, drawBorder: false }
+                    }
+                },
+                animation: {
+                    onComplete: function() {
+                        var chartInstance = this,
+                        ctx = chartInstance.ctx;
+                        ctx.font = Chart.helpers.fontString(9, 'normal', Chart.defaults.font.family);
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#475569';
+
+                        this.data.datasets.forEach(function(dataset, i) {
+                            var meta = chartInstance.getDatasetMeta(i);
+                            meta.data.forEach(function(bar, index) {
+                                var data = dataset.data[index].toLocaleString('es-CL');
+                                ctx.fillText(data, bar.x + 5, bar.y);
+                            });
+                        });
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
