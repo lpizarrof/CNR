@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo Institucional - CNR Illapel</title>
+    <!-- Dependencia estricta: Plotly.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js"></script>
+    
+    <style>
+        :root {
+            --color-primary: #0B5394;
+            --color-primary-dark: #073763;
+            --color-second: #38761D;
+            --color-accent: #E69138;
+            --color-mujer: #C2410C;
+            --color-hombre: #1D4ED8;
+            --color-purple: #674EA7;
+            --bg-color: #F4F6F8;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body { background-color: var(--bg-color); color: var(--text-main); font-size: 14px; }
+
+        /* Header Sticky */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white; padding: 1rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        header h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+        header p { font-size: 0.9rem; opacity: 0.8; }
+
+        /* Filter Bar Sticky */
+        .filter-bar {
+            position: sticky; top: 72px; z-index: 99;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            padding: 0.75rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+            min-height: 50px;
+        }
+        
+        .chip {
+            background: var(--color-primary); color: white;
+            padding: 4px 12px; border-radius: 16px;
+            font-size: 0.85rem; display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .chip.chip-person { background: var(--color-purple); }
+        .chip button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; }
+        .chip button:hover { opacity: 0.8; }
+        
+        .btn-clear {
+            background: var(--color-accent); color: white; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer;
+            font-size: 0.85rem; font-weight: 500; transition: opacity 0.2s;
+        }
+        .btn-clear:disabled { background: #CBD5E1; cursor: not-allowed; }
+        .btn-clear:hover:not(:disabled) { opacity: 0.9; }
+        .filter-hint { color: var(--text-muted); font-size: 0.9rem; font-style: italic; }
+
+        /* Layout & Grids */
+        main { padding: 1.5rem 2rem; max-width: 1600px; margin: 0 auto; }
+        
+        section { margin-bottom: 2rem; }
+        section h2 { font-size: 1.2rem; color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 1.25rem; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid var(--color-primary); }
+        .kpi-card h3 { color: var(--text-muted); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .kpi-card .value { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .chart-container { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); min-height: 350px; }
+        .chart-title { font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem; text-align: center;}
+
+        .detail-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: var(--card-bg); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .detail-toolbar .counter { font-weight: 500; color: var(--color-primary); }
+        .toolbar-actions { display: flex; gap: 0.5rem; }
+        .btn-action { background: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .btn-action:hover { background: #F8FAFC; }
+
+        .table-container { max-height: 360px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        th { background: #F8FAFC; position: sticky; top: 0; z-index: 10; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; }
+        tbody tr:hover { background: #F1F5F9; cursor: pointer; }
+        tbody tr.row-selected { background: #FFF3E0; }
+        
+        @media (max-width: 1100px) {
+            .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dashboard Ejecutivo Interactivo</h1>
+        <p>Comisión Nacional de Riego (CNR) — Programa Illapel</p>
+    </header>
+
+    <div class="filter-bar" id="filter-bar">
+        <!-- Generado por JS -->
+    </div>
+
+    <main>
+        <div class="kpi-grid" id="kpi-grid">
+            <!-- KPIs generados por JS -->
+        </div>
+
+        <section>
+            <h2>Cobertura y Participación</h2>
+            <div class="grid-2">
+                <div class="chart-container">
+                    <div class="chart-title">Asistencia por Actividad</div>
+                    <div id="chart-actividad" style="width:100%; height:320px;"></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Top 12 Organizaciones (Asistencias)</div>
+                    <div id="chart-org" style="width:100%; height:320px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Perfil de Participantes</h2>
+            <div class="grid-2">
+                <div class="chart-container">
+                    <div class="chart-title">Distribución por Sexo</div>
+                    <div id="chart-sexo" style="width:100%; height:300px;"></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Distribución por Tipo de OUA</div>
+                    <div id="chart-tipo" style="width:100%; height:300px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Fidelización y Conversión</h2>
+            <div class="grid-2">
+                <div class="chart-container">
+                    <div class="chart-title">Nivel de Fidelización (Actividades por Persona)</div>
+                    <div id="chart-fidel" style="width:100%; height:300px;"></div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Embudo de Gestión por Categoría</div>
+                    <div id="chart-embudo" style="width:100%; height:300px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Detalle de Personas</h2>
+            <div class="detail-toolbar">
+                <div class="counter" id="table-counter">Cargando...</div>
+                <div class="toolbar-actions">
+                    <button class="btn-action" onclick="selectAllVisible()">Seleccionar Visibles</button>
+                    <button class="btn-action" onclick="clearPersonSelection()">Limpiar Selección</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="detail-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px"></th>
+                            <th>Persona</th>
+                            <th>RUT</th>
+                            <th>Sexo</th>
+                            <th>Tipo OUA</th>
+                            <th>Organización</th>
+                            <th>Contacto</th>
+                            <th>N° Actividades</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Generado por JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. DATOS EMBEBIDOS (Simulación ETL)
+        // ==========================================
+        
+        // Función auxiliar para generar datos de prueba realistas (reemplaza el JSON de Python)
+        function generateMockData() {
+            const orgs = ["Junta de Vigilancia del Río Choapa", "Asociación de Canalistas Canal Buzeta", "Comunidad de Aguas Canal Silvano", "Comunidad de Aguas Canal Molino", "Comunidad de Aguas Canal Bellavista", "Asociación de Canalistas Canal Derivado", "Junta de Vigilancia Río Illapel", "Comunidad de Aguas Santa Inés", "Comunidad de Aguas San Isidro", "Comunidad de Aguas El Peral", "Comunidad de Aguas La Hacienda", "Asociación de Canalistas El Progreso", "Comunidad de Aguas Los Naranjos", "Comunidad de Aguas Las Palmas"];
+            const tiposOUA = {"Junta de Vigilancia del Río Choapa": "JV", "Asociación de Canalistas Canal Buzeta": "AC", "Comunidad de Aguas Canal Silvano": "CA", "Comunidad de Aguas Canal Molino": "CA", "Comunidad de Aguas Canal Bellavista": "CA", "Asociación de Canalistas Canal Derivado": "AC", "Junta de Vigilancia Río Illapel": "JV", "Comunidad de Aguas Santa Inés": "CA", "Comunidad de Aguas San Isidro": "CA", "Comunidad de Aguas El Peral": "CA", "Comunidad de Aguas La Hacienda": "CA", "Asociación de Canalistas El Progreso": "AC", "Comunidad de Aguas Los Naranjos": "CA", "Comunidad de Aguas Las Palmas": "CA"};
+            const actividades_db = [
+                {id: "A01", act: "Difusión Programa Illapel", cat: "Difusión", fec: "2025-03-10"},
+                {id: "A02", act: "Atención Móvil Plaza", cat: "Atención de público", fec: "2025-04-15"},
+                {id: "A03", act: "Taller Saneamiento Legal", cat: "Saneamiento", fec: "2025-05-20"},
+                {id: "A04", act: "Asesoría Regularización", cat: "Regularización", fec: "2025-06-05"},
+                {id: "A05", act: "Reunión de Cierre", cat: "Otros", fec: "2025-07-12"},
+                {id: "A06", act: "Atención Terreno Choapa", cat: "Atención de público", fec: "2025-04-22"}
+            ];
+
+            let personas = [];
+            let flatData = [];
+            
+            // Generar 150 personas
+            for(let i=1; i<=150; i++) {
+                const isMujer = Math.random() > 0.65; // 35% mujeres
+                const org = orgs[Math.floor(Math.random() * orgs.length)];
+                let p = {
+                    persona_id: `P${i.toString().padStart(4, '0')}`,
+                    nombre_completo: `Participante ${i}`,
+                    rut: `${Math.floor(Math.random()*15 + 5)}.${Math.floor(Math.random()*900+100)}.${Math.floor(Math.random()*900+100)}-${Math.floor(Math.random()*10)}`,
+                    sexo: isMujer ? "Mujer" : "Hombre",
+                    tipo_oua: tiposOUA[org],
+                    organizacion_id: `O${orgs.indexOf(org).toString().padStart(3, '0')}`,
+                    organizacion: org,
+                    contacto: Math.random() > 0.2 ? `+569${Math.floor(10000000 + Math.random() * 90000000)}` : null
+                };
+                personas.push(p);
+
+                // Asignar asistencias (Fidelización simulada)
+                // Muchos asisten a 1, menos a 2, etc. (Embudos)
+                let numAct = Math.random() > 0.5 ? 1 : (Math.random() > 0.5 ? 2 : (Math.random() > 0.5 ? 3 : 4));
+                
+                // Shuffle actividades y tomar 'numAct'
+                let acts = [...actividades_db].sort(() => 0.5 - Math.random()).slice(0, numAct);
+                
+                acts.forEach(act => {
+                    flatData.push({
+                        ...p,
+                        actividad_id: act.id,
+                        actividad: act.act,
+                        categoria: act.cat,
+                        fecha: act.fec
+                    });
+                });
+            }
+            return { PERSONAS: personas, FLAT_DATA: flatData };
+        }
+
+        const MOCK = generateMockData();
+        const FLAT_DATA = MOCK.FLAT_DATA;
+        const PERSONAS = MOCK.PERSONAS;
+
+        // Orden fijo de actividades (calcular al inicio)
+        const ACTIVIDAD_ORDER = Object.entries(FLAT_DATA.reduce((acc, curr) => {
+            acc[curr.actividad] = (acc[curr.actividad] || 0) + 1;
+            return acc;
+        }, {})).sort((a,b) => b[1] - a[1]).map(k => k[0]);
+
+        // Orden de embudo requerido
+        const EMBUDO_ORDER = ["Difusión", "Atención de público", "Saneamiento", "Regularización", "Otros"];
+
+        const COLOR_PRIMARY = "#0B5394";
+        const COLOR_SECOND  = "#38761D";
+        const COLOR_ACCENT  = "#E69138";
+        const COLOR_MUJER   = "#C2410C";
+        const COLOR_HOMBRE  = "#1D4ED8";
+        const PALETTE = ["#0B5394","#38761D","#E69138","#674EA7","#A64D79","#45818E","#990000","#BF9000"];
+        
+        const PLOT_LAYOUT_DEFAULTS = {
+            font: { family: "'Segoe UI', system-ui, sans-serif" },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            showlegend: false
+        };
+        const PLOT_CONFIG = { displayModeBar: false, responsive: true };
+
+        let filters = {
+            sexo: new Set(),
+            tipo_oua: new Set(),
+            organizacion: new Set(),
+            actividad: new Set(),
+            categoria: new Set(),
+            n_actividades: new Set()
+        };
+        let selectedPersons = new Set();
+        let isClickHandlersAttached = false;
+
+        // Helper para contar actividades completas por persona
+        function personasConNActividades() {
+            let counts = {};
+            FLAT_DATA.forEach(r => {
+                counts[r.persona_id] = (counts[r.persona_id] || 0) + 1;
+            });
+            return counts;
+        }
+        const GLOBAL_PERSONA_COUNTS = personasConNActividades(); // Estático
+
+        function applyAllFilters(excludeDim) {
+            let rows = FLAT_DATA;
+
+            // Aplicar filtros dimensionales regulares
+            Object.keys(filters).forEach(dim => {
+                if (dim === excludeDim || dim === 'n_actividades') return;
+                if (filters[dim].size > 0) {
+                    rows = rows.filter(r => filters[dim].has(r[dim]));
+                }
+            });
+
+            // Aplicar filtro de N° actividades
+            if (excludeDim !== 'n_actividades' && filters.n_actividades.size > 0) {
+                rows = rows.filter(r => {
+                    let c = GLOBAL_PERSONA_COUNTS[r.persona_id];
+                    let bucket = c >= 4 ? "4+" : c.toString();
+                    return filters.n_actividades.has(bucket);
+                });
+            }
+
+            // Aplicar filtro de selección explícita de personas
+            if (excludeDim !== "selectedPersons" && selectedPersons.size > 0) {
+                rows = rows.filter(r => selectedPersons.has(r.persona_id));
+            }
+
+            return rows;
+        }
+
+        function toggleFilter(dim, value) {
+            if (filters[dim].has(value)) {
+                filters[dim].delete(value);
+            } else {
+                filters[dim].add(value);
+            }
+            renderAll();
+        }
+
+        function removeFilter(dim, value) {
+            filters[dim].delete(value);
+            renderAll();
+        }
+
+        function clearAllFilters() {
+            Object.keys(filters).forEach(k => filters[k].clear());
+            selectedPersons.clear();
+            renderAll();
+        }
+
+        function togglePersonSelection(persona_id) {
+            if (selectedPersons.has(persona_id)) selectedPersons.delete(persona_id);
+            else selectedPersons.add(persona_id);
+            renderAll();
+        }
+
+        function clearPersonSelection() {
+            selectedPersons.clear();
+            renderAll();
+        }
+
+        let currentVisiblePersonaIds = []; // Estado local para seleccionar todos los visibles
+        function selectAllVisible() {
+            currentVisiblePersonaIds.forEach(id => selectedPersons.add(id));
+            renderAll();
+        }
+
+        // Helper para colores atenuados
+        function barColorArray(labels, dim, baseColor) {
+            return labels.map(label => {
+                if (filters[dim].size === 0) return baseColor;
+                return filters[dim].has(label) ? baseColor : "rgba(200,200,200,0.35)";
+            });
+        }
+
+        // Helpers de agregación
+        function aggregate(data, key) {
+            return data.reduce((acc, curr) => {
+                acc[curr[key]] = (acc[curr[key]] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function countDistinct(data, key) {
+            return new Set(data.map(d => d[key])).size;
+        }
+
+
+        function renderFilterBar() {
+            const bar = document.getElementById('filter-bar');
+            let html = '';
+            let hasFilters = false;
+
+            Object.keys(filters).forEach(dim => {
+                filters[dim].forEach(val => {
+                    hasFilters = true;
+                    html += `<div class="chip">
+                                ${dim.replace('_',' ')}: ${val}
+                                <button onclick="removeFilter('${dim}', '${val}')">×</button>
+                             </div>`;
+                });
+            });
+
+            if (selectedPersons.size > 0) {
+                hasFilters = true;
+                html += `<div class="chip chip-person">
+                            ${selectedPersons.size} persona${selectedPersons.size > 1 ? 's' : ''} seleccionada${selectedPersons.size > 1 ? 's' : ''}
+                            <button onclick="clearPersonSelection()">×</button>
+                         </div>`;
+            }
+
+            if (!hasFilters) {
+                html = `<span class="filter-hint">No hay filtros aplicados. Haz clic en los gráficos para filtrar.</span>`;
+            } else {
+                html += `<button class="btn-clear" onclick="clearAllFilters()">Limpiar todos</button>`;
+            }
+
+            bar.innerHTML = html;
+        }
+
+        function renderKPIs() {
+            const data = applyAllFilters(null);
+            
+            const personasCount = countDistinct(data, 'persona_id');
+            const orgsCount = countDistinct(data, 'organizacion_id');
+            const actsCount = countDistinct(data, 'actividad_id');
+            const asisCount = data.length;
+            
+            const promAct = personasCount === 0 ? 0 : (asisCount / personasCount).toFixed(1);
+
+            // Calcular fidelización (2+)
+            let fidelCount = 0;
+            if (personasCount > 0) {
+                const pCounts = {};
+                data.forEach(r => pCounts[r.persona_id] = (pCounts[r.persona_id] || 0) + 1);
+                fidelCount = Object.values(pCounts).filter(v => v >= 2).length;
+            }
+            const pctFidel = personasCount === 0 ? 0 : Math.round((fidelCount / personasCount) * 100);
+
+            const grid = document.getElementById('kpi-grid');
+            grid.innerHTML = `
+                <div class="kpi-card"><h3>Personas</h3><div class="value">${personasCount}</div></div>
+                <div class="kpi-card"><h3>Organizaciones</h3><div class="value">${orgsCount}</div></div>
+                <div class="kpi-card"><h3>Actividades</h3><div class="value">${actsCount}</div></div>
+                <div class="kpi-card"><h3>Asistencias Totales</h3><div class="value">${asisCount}</div></div>
+                <div class="kpi-card"><h3>Prom. Act./Persona</h3><div class="value">${promAct}</div></div>
+                <div class="kpi-card"><h3>Fidelización (2+)</h3><div class="value">${pctFidel}%</div></div>
+            `;
+        }
+
+        function renderActividad() {
+            const data = applyAllFilters('actividad');
+            let agg = aggregate(data, 'actividad');
+            
+            // Usar orden estático
+            let y = [...ACTIVIDAD_ORDER].reverse(); 
+            let x = y.map(act => agg[act] || 0);
+
+            let colors = barColorArray(y, 'actividad', COLOR_PRIMARY);
+
+            Plotly.react('chart-actividad', [{
+                type: 'bar', orientation: 'h', x: x, y: y,
+                marker: { color: colors }
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                yaxis: { autorange:"reversed", automargin:true, tickfont:{size:11} },
+                xaxis: { automargin:true },
+                margin: { l:10, r:30, t:10, b:30 }
+            }, PLOT_CONFIG);
+        }
+
+        function renderOrg() {
+            const data = applyAllFilters('organizacion');
+            let agg = aggregate(data, 'organizacion');
+            
+            let sorted = Object.entries(agg).sort((a,b) => b[1] - a[1]).slice(0, 12); // Top 12
+            let y = sorted.map(d => d[0]).reverse();
+            let x = sorted.map(d => d[1]).reverse();
+
+            let colors = barColorArray(y, 'organizacion', COLOR_PRIMARY);
+
+            Plotly.react('chart-org', [{
+                type: 'bar', orientation: 'h', x: x, y: y,
+                marker: { color: colors }
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                yaxis: { autorange:"reversed", automargin:true, tickfont:{size:11} },
+                xaxis: { automargin:true },
+                margin: { l:10, r:30, t:10, b:30 }
+            }, PLOT_CONFIG);
+        }
+
+        function renderSexo() {
+            const data = applyAllFilters('sexo');
+            
+            // Dedup for people attributes
+            const uniqueData = Array.from(new Map(data.map(item => [item.persona_id, item])).values());
+            let agg = aggregate(uniqueData, 'sexo');
+            
+            let labels = Object.keys(agg);
+            let values = Object.values(agg);
+
+            let colors = labels.map(l => l === 'Mujer' ? COLOR_MUJER : (l === 'Hombre' ? COLOR_HOMBRE : '#888'));
+            
+            // Aplica opacidad si hay filtro
+            colors = labels.map((l, i) => {
+                if(filters.sexo.size === 0) return colors[i];
+                return filters.sexo.has(l) ? colors[i] : "rgba(200,200,200,0.35)";
+            });
+
+            Plotly.react('chart-sexo', [{
+                type: 'pie', hole: 0.5, labels: labels, values: values,
+                marker: { colors: colors }, textinfo: 'label+percent', hoverinfo: 'label+value'
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                margin: { l:20, r:20, t:20, b:20 }
+            }, PLOT_CONFIG);
+        }
+
+        function renderTipo() {
+            const data = applyAllFilters('tipo_oua');
+            const uniqueData = Array.from(new Map(data.map(item => [item.persona_id, item])).values());
+            let agg = aggregate(uniqueData, 'tipo_oua');
+            
+            let labels = Object.keys(agg);
+            let values = Object.values(agg);
+
+            let colors = labels.map((l, i) => PALETTE[i % PALETTE.length]);
+            colors = labels.map((l, i) => {
+                if(filters.tipo_oua.size === 0) return colors[i];
+                return filters.tipo_oua.has(l) ? colors[i] : "rgba(200,200,200,0.35)";
+            });
+
+            Plotly.react('chart-tipo', [{
+                type: 'pie', hole: 0.5, labels: labels, values: values,
+                marker: { colors: colors }, textinfo: 'label+percent', hoverinfo: 'label+value'
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                margin: { l:20, r:20, t:20, b:20 }
+            }, PLOT_CONFIG);
+        }
+
+        function renderFidel() {
+            const data = applyAllFilters('n_actividades');
+            
+            // Calcular frecuencias en el dataset filtrado
+            const uniqueData = Array.from(new Map(data.map(item => [item.persona_id, item])).values());
+            
+            let buckets = {"1":0, "2":0, "3":0, "4+":0};
+            uniqueData.forEach(p => {
+                let c = GLOBAL_PERSONA_COUNTS[p.persona_id];
+                let b = c >= 4 ? "4+" : c.toString();
+                buckets[b]++;
+            });
+
+            let x = ["1", "2", "3", "4+"];
+            let y = x.map(k => buckets[k]);
+
+            let colors = barColorArray(x, 'n_actividades', COLOR_SECOND);
+
+            Plotly.react('chart-fidel', [{
+                type: 'bar', x: x, y: y,
+                marker: { color: colors }, text: y, textposition: 'auto'
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                xaxis: { title: "N° de Actividades Asistidas" },
+                yaxis: { automargin: true },
+                margin: { l:30, r:10, t:20, b:40 }
+            }, PLOT_CONFIG);
+        }
+
+        function renderEmbudo() {
+            const data = applyAllFilters('categoria');
+            let agg = aggregate(data, 'categoria');
+            
+            let y = EMBUDO_ORDER;
+            let x = y.map(cat => agg[cat] || 0);
+
+            let colors = barColorArray(y, 'categoria', COLOR_PRIMARY);
+
+            Plotly.react('chart-embudo', [{
+                type: 'funnel', y: y, x: x,
+                marker: { color: colors },
+                textinfo: "value+percent initial"
+            }], {
+                ...PLOT_LAYOUT_DEFAULTS,
+                yaxis: { automargin:true, tickfont:{size:11} },
+                margin: { l:10, r:10, t:10, b:10 }
+            }, PLOT_CONFIG);
+        }
+
+
+        function renderDetailTable() {
+            // Apply all filters EXCEPT selectedPersons
+            const data = applyAllFilters('selectedPersons');
+            
+            // Obtener personas únicas resultantes
+            const uniquePersonas = Array.from(new Map(data.map(item => [item.persona_id, item])).values());
+            currentVisiblePersonaIds = uniquePersonas.map(p => p.persona_id);
+
+            const tbody = document.querySelector('#detail-table tbody');
+            const counter = document.getElementById('table-counter');
+
+            if (uniquePersonas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color:#888;">No hay personas que coincidan con los filtros actuales.</td></tr>`;
+                counter.innerText = "0 personas coinciden";
+                return;
+            }
+
+            // Slicing 200 máx
+            const displayData = uniquePersonas.slice(0, 200);
+            
+            let html = '';
+            displayData.forEach(p => {
+                const isSelected = selectedPersons.has(p.persona_id);
+                const nActs = GLOBAL_PERSONA_COUNTS[p.persona_id];
+                html += `
+                    <tr class="${isSelected ? 'row-selected' : ''}" onclick="togglePersonSelection('${p.persona_id}')">
+                        <td><input type="checkbox" ${isSelected ? 'checked' : ''} style="pointer-events:none"></td>
+                        <td style="font-weight:500;">${p.nombre_completo}</td>
+                        <td>${p.rut || '—'}</td>
+                        <td>${p.sexo}</td>
+                        <td>${p.tipo_oua}</td>
+                        <td>${p.organizacion}</td>
+                        <td>${p.contacto || '—'}</td>
+                        <td style="text-align:center; font-weight:bold;">${nActs}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+
+            let countText = `${uniquePersonas.length} persona(s) coinciden`;
+            if (uniquePersonas.length > 200) countText += ` (mostrando 200)`;
+            if (selectedPersons.size > 0) countText += ` · ${selectedPersons.size} seleccionada(s) en total`;
+            counter.innerText = countText;
+        }
+
+        function renderAll() {
+            renderFilterBar();
+            renderKPIs();
+            renderActividad();
+            renderOrg();
+            renderSexo();
+            renderTipo();
+            renderFidel();
+            renderEmbudo();
+            renderDetailTable();
+            
+            if (!isClickHandlersAttached) attachClickHandlers();
+        }
+
+        // Registrar Eventos Plotly UNA SOLA VEZ (Evita memory leaks)
+        function attachClickHandlers() {
+            const actDiv = document.getElementById('chart-actividad');
+            if(actDiv.on) actDiv.on('plotly_click', d => toggleFilter('actividad', d.points[0].y));
+
+            const orgDiv = document.getElementById('chart-org');
+            if(orgDiv.on) orgDiv.on('plotly_click', d => toggleFilter('organizacion', d.points[0].y));
+
+            const sexoDiv = document.getElementById('chart-sexo');
+            if(sexoDiv.on) sexoDiv.on('plotly_click', d => toggleFilter('sexo', d.points[0].label));
+
+            const tipoDiv = document.getElementById('chart-tipo');
+            if(tipoDiv.on) tipoDiv.on('plotly_click', d => toggleFilter('tipo_oua', d.points[0].label));
+
+            const fidelDiv = document.getElementById('chart-fidel');
+            if(fidelDiv.on) fidelDiv.on('plotly_click', d => {
+                const labels = ["1","2","3","4+"];
+                toggleFilter('n_actividades', labels[d.points[0].pointIndex]);
+            });
+
+            const embudoDiv = document.getElementById('chart-embudo');
+            if(embudoDiv.on) embudoDiv.on('plotly_click', d => toggleFilter('categoria', d.points[0].y));
+
+            isClickHandlersAttached = true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+        });
+
+    </script>
+</body>
+</html>
