@@ -38,10 +38,17 @@ html,body{width:100%;height:100vh;overflow:hidden;font-family:'Segoe UI',system-
 .hdr-filters{display:flex;gap:5px;align-items:flex-end;flex-shrink:0}
 .fg{display:flex;flex-direction:column;gap:1px}
 .fg label{font-size:7.5px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.fg select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:9.5px;padding:3px 20px 3px 6px;border-radius:4px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(255,255,255,.5)'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;font-family:inherit;min-width:76px;transition:all .15s}
-.fg select:focus{outline:2px solid var(--accent);background:rgba(255,255,255,.95);color:var(--navy);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%230D1B3E'/%3E%3C/svg%3E")}
-.fg select.has-value{background:rgba(255,255,255,.92);color:var(--navy);font-weight:600;border-color:var(--accent);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%230D1B3E'/%3E%3C/svg%3E")}
-.fg select option{background:#fff;color:var(--navy);font-weight:400}
+.fg select{
+  background:#fff;border:1px solid rgba(255,255,255,.3);
+  color:var(--navy);font-size:9.5px;padding:3px 20px 3px 6px;
+  border-radius:4px;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%230D1B3E'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;
+  font-family:inherit;min-width:76px;transition:border-color .15s
+}
+.fg select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.fg select.has-value{border-color:var(--accent);font-weight:600;background-color:#EEF9FF}
+.fg select option{background:#fff;color:var(--navy)}
 .hdr-date{display:flex;align-items:center;gap:4px;background:rgba(0,196,180,.12);border:1px solid rgba(0,196,180,.3);border-radius:4px;padding:3px 7px;color:var(--accent);font-size:8.5px;font-weight:600;white-space:nowrap}
 /* CONTENT */
 .content{flex:1;min-height:0;padding:var(--gap);overflow:hidden}
@@ -157,32 +164,27 @@ html,body{width:100%;height:100vh;overflow:hidden;font-family:'Segoe UI',system-
 /* CANVAS */
 canvas{max-width:100%;max-height:100%}
 
-/* ── TOOLTIP SYSTEM ── */
-[data-tip]{position:relative;cursor:help}
-[data-tip]::after{
-  content:attr(data-tip);
-  position:absolute;z-index:9999;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
-  background:rgba(13,27,62,.96);color:#fff;font-size:9px;font-weight:400;line-height:1.45;
-  padding:6px 10px;border-radius:5px;white-space:normal;min-width:180px;max-width:260px;
-  box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;
-  opacity:0;transition:opacity .18s .1s;text-align:left;font-family:'Segoe UI',system-ui,sans-serif;
-}
-[data-tip]::before{
-  content:'';position:absolute;z-index:9999;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);
-  border:5px solid transparent;border-top-color:rgba(13,27,62,.96);
-  opacity:0;transition:opacity .18s .1s;pointer-events:none;
-}
-[data-tip]:hover::after,[data-tip]:hover::before{opacity:1}
-[data-tip].tip-left::after{left:0;transform:none}
-[data-tip].tip-right::after{left:auto;right:0;transform:none}
-/* abbr tooltip override */
+/* ── TOOLTIP SYSTEM (JS-driven, follows mouse, appears below) ── */
+[data-tip]{cursor:help}
 abbr[title]{text-decoration:underline dotted;cursor:help}
-/* kcard hover highlight */
-.kcard[data-tip]{cursor:help;border-bottom:2px solid transparent;transition:border-color .15s}
+.kcard[data-tip]{border-bottom:2px solid transparent;transition:border-color .15s}
 .kcard[data-tip]:hover{border-bottom-color:var(--accent)}
-/* ct with tip */
 .ct[data-tip]{display:flex;align-items:center;gap:4px}
-.ct[data-tip]::before{content:'ⓘ';font-size:9px;color:var(--accent);font-style:normal;opacity:.7;flex-shrink:0;cursor:help}
+.ct[data-tip]::before{content:'ⓘ';font-size:9px;color:var(--accent);opacity:.75;flex-shrink:0}
+/* Global floating tooltip box */
+#_tip{
+  position:fixed;z-index:99999;pointer-events:none;
+  background:rgba(13,27,62,.97);color:#fff;
+  font-size:10px;font-weight:400;line-height:1.5;
+  padding:7px 11px;border-radius:6px;
+  white-space:normal;min-width:200px;max-width:280px;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
+  opacity:0;transition:opacity .15s;
+  text-align:left;font-family:'Segoe UI',system-ui,sans-serif;
+}
+#_tip.visible{opacity:1}
+/* Sidebar nav tooltip */
+.ni[data-tip]{position:relative}
 </style>
 
 </head>
@@ -198,35 +200,35 @@ abbr[title]{text-decoration:underline dotted;cursor:help}
     </svg>
   </div>
   <nav class="sb-nav">
-    <button class="ni active" onclick="goPage('resumen',this)">
+    <button class="ni active" onclick="goPage('resumen',this)" data-tip="Resumen Ejecutivo — KPIs globales de contactabilidad de las 4.191 OUA: total, con/sin contacto, OUA de Hecho y cobertura nacional. Vista principal del Catálogo.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4H3V4zm0 6h5v7H4a1 1 0 01-1-1v-6zm6 7V4h5v6h-5v7h-4v-7zm6-7h2a1 1 0 011 1v6a1 1 0 01-1 1h-2v-8z"/></svg>
       Resumen<br>Ejecutivo
     </button>
-    <button class="ni" onclick="goPage('cobertura',this)">
+    <button class="ni" onclick="goPage('cobertura',this)" data-tip="Cobertura de Contacto — Análisis detallado de la cobertura por tipo de OUA y región. Incluye desglose por atributos (teléfono, correo, dirección, web) y barras apiladas regionales.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 00-1 1v1a1 1 0 001 1h16a1 1 0 001-1V4a1 1 0 00-1-1H2zm0 5a1 1 0 00-1 1v6a1 1 0 001 1h16a1 1 0 001-1V9a1 1 0 00-1-1H2z"/></svg>
       Cobertura<br>Contacto
     </button>
-    <button class="ni" onclick="goPage('calidad',this)">
+    <button class="ni" onclick="goPage('calidad',this)" data-tip="Calidad de Datos — Índice de completitud por atributo y por tipo de OUA. Diagnóstico de la brecha informacional según el Informe MTA (Tobar, 2024).">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
       Calidad<br>de Datos
     </button>
-    <button class="ni" onclick="goPage('territorial',this)">
+    <button class="ni" onclick="goPage('territorial',this)" data-tip="Gestión Territorial — Distribución geográfica de las OUA por región, provincia y comuna. Permite identificar concentraciones territoriales y densidad de organizaciones.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
       Gestión<br>Territorial
     </button>
-    <button class="ni" onclick="goPage('criticas',this)">
+    <button class="ni" onclick="goPage('criticas',this)" data-tip="Organizaciones Críticas — OUA sin ningún dato de contacto (0 de 4 atributos). Matriz de criticidad Tipo × Región y listado de OUA prioritarias para intervención.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
       Orgs.<br>Críticas
     </button>
-    <button class="ni" onclick="goPage('dh',this)">
+    <button class="ni" onclick="goPage('dh',this)" data-tip="OUA de Hecho — Organizaciones que operan sin número de registro DGA aprobado. Análisis de la informalidad institucional y su impacto en la contactabilidad.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 14.094A5.973 5.973 0 004 17v1H1v-1a3 3 0 013.75-2.906z"/></svg>
       OUA de<br>Hecho
     </button>
-    <button class="ni" onclick="goPage('emergencias',this)">
+    <button class="ni" onclick="goPage('emergencias',this)" data-tip="Emergencias Climáticas — Evaluación del riesgo de no contactabilidad ante eventos extremos (inundaciones, sequías). Estrategia de cascada JV → AC → CA para respuesta institucional.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
       Emergencias<br>Climáticas
     </button>
-    <button class="ni" onclick="goPage('intel',this)">
+    <button class="ni" onclick="goPage('intel',this)" data-tip="Inteligencia CNR — Análisis de factibilidad para poblar la base de datos. Mapa de calor, JV bonificadas CNR, brecha actual vs. meta y prioridades de intervención territorial.">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/></svg>
       Inteligencia<br>CNR
     </button>
@@ -1396,6 +1398,55 @@ function wrapAbbr(text){
 // ── INIT ──
 initSelects();
 renderAll();
+
+// ── TOOLTIP ENGINE (follows mouse, appears below cursor) ────────────────
+(function(){
+  const box = document.createElement('div');
+  box.id = '_tip';
+  document.body.appendChild(box);
+
+  let current = null;
+  let showTimer = null;
+
+  function getTip(el){
+    // Walk up to find data-tip
+    let node = el;
+    while(node && node !== document.body){
+      if(node.dataset && node.dataset.tip) return node.dataset.tip;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  document.addEventListener('mousemove', function(e){
+    const tip = getTip(e.target);
+    if(!tip){ hide(); return; }
+    if(tip !== current){
+      current = tip;
+      box.textContent = tip;
+    }
+    // Position: 14px below cursor, horizontally centered on cursor but clamped
+    const W = box.offsetWidth || 250;
+    const H = box.offsetHeight || 60;
+    let x = e.clientX - W/2;
+    let y = e.clientY + 16;
+    // Clamp to viewport
+    x = Math.max(8, Math.min(x, window.innerWidth - W - 8));
+    if(y + H > window.innerHeight - 8) y = e.clientY - H - 10;
+    box.style.left = x + 'px';
+    box.style.top  = y + 'px';
+    box.classList.add('visible');
+  });
+
+  document.addEventListener('mouseleave', hide);
+  document.addEventListener('scroll', hide, true);
+
+  function hide(){
+    box.classList.remove('visible');
+    current = null;
+  }
+})();
+
 </script>
 </body>
 </html>
