@@ -71,6 +71,7 @@
 
         .cnr-branding {
             margin-bottom: 40px;
+            text-align: center;
         }
 
         .main-title {
@@ -104,23 +105,24 @@
             padding: 25px;
             backdrop-filter: blur(5px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
         }
 
         .dashboard-card h3 {
-            font-size: 1.4rem;
-            margin-top: 0;
-            margin-bottom: 20px;
+            font-size: 1.3rem;
+            margin: 0;
             color: #ffffff;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-            padding-bottom: 10px;
             text-align: left;
+            flex-grow: 1;
         }
 
         .buttons-container {
             display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: flex-start;
+            justify-content: flex-end;
+            flex-shrink: 0;
         }
 
         .btn {
@@ -136,6 +138,7 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            white-space: nowrap;
         }
 
         .btn:hover {
@@ -170,10 +173,32 @@
             font-weight: 800;
             font-size: 16px;
             letter-spacing: 0.5px;
+            white-space: nowrap;
         }
         
         .footer-text span {
             font-weight: 400;
+        }
+
+        /* Responsividad básica para pantallas pequeñas */
+        @media (max-width: 600px) {
+            .dashboard-card {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+            .dashboard-card h3 {
+                text-align: center;
+                margin-bottom: 15px;
+            }
+            .buttons-container {
+                width: 100%;
+                justify-content: center;
+            }
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -199,8 +224,7 @@
             <div class="dashboard-card">
                 <h3>Programa de Fortalecimiento OUA, Illapel</h3>
                 <div class="buttons-container">
-                    <a href="db-illapel-cld.html" class="btn">Versión 1</a>
-                    <a href="db-illapel-gmn.html" class="btn">Versión 2</a>
+                    <a href="db-illapel-cld.html" class="btn">Ver Dashboard</a>
                 </div>
             </div>
 
